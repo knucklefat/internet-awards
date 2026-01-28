@@ -141,17 +141,23 @@ export const AdminPanel = ({ onClose }: Props) => {
         return;
       }
       
+      // Create blob URL and open in new tab (works in sandboxed iframes)
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `internet-awards-nominations-${Date.now()}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const newWindow = window.open(url, '_blank');
       
-      console.log('Download triggered successfully');
-      alert('Export complete! Check your downloads folder.');
+      if (!newWindow) {
+        // Fallback: copy CSV data to clipboard
+        const text = await blob.text();
+        await navigator.clipboard.writeText(text);
+        alert('Pop-up blocked. CSV data has been copied to your clipboard instead. Paste it into a text editor and save as .csv');
+      } else {
+        alert('Export opened in new tab. Right-click and "Save As" to download the CSV file.');
+      }
+      
+      // Clean up after a delay
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+      
+      console.log('Export complete');
     } catch (error) {
       console.error('Export error:', error);
       alert(`Failed to export nominations: ${error instanceof Error ? error.message : 'Unknown error'}`);
