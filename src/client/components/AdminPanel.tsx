@@ -12,6 +12,7 @@ export const AdminPanel = ({ onClose }: Props) => {
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
   const [eventConfig, setEventConfig] = useState<any>(null);
   const [nominations, setNominations] = useState<any[]>([]);
@@ -107,15 +108,39 @@ export const AdminPanel = ({ onClose }: Props) => {
   };
 
   const handleExportAll = async () => {
+    console.log('Export button clicked');
+    setExporting(true);
+    
     try {
+      console.log('Fetching /api/export-csv...');
       const response = await fetch('/api/export-csv');
+      console.log('Response received:', response.status, response.statusText);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        alert(`Export failed: ${errorData.error || 'Unknown error'}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          const text = await response.text();
+          errorMessage = text || errorMessage;
+        }
+        console.error('Export failed:', errorMessage);
+        alert(`Export failed: ${errorMessage}`);
+        setExporting(false);
         return;
       }
       
+      console.log('Converting to blob...');
       const blob = await response.blob();
+      console.log('Blob size:', blob.size, 'bytes');
+      
+      if (blob.size === 0) {
+        alert('Export returned empty file - there may be no nominations yet');
+        setExporting(false);
+        return;
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -124,9 +149,14 @@ export const AdminPanel = ({ onClose }: Props) => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      
+      console.log('Download triggered successfully');
+      alert('Export complete! Check your downloads folder.');
     } catch (error) {
       console.error('Export error:', error);
-      alert('Failed to export nominations');
+      alert(`Failed to export nominations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -257,8 +287,9 @@ export const AdminPanel = ({ onClose }: Props) => {
                 <button 
                   className="admin-action-button export-btn"
                   onClick={handleExportAll}
+                  disabled={exporting}
                 >
-                  Export All Nominations to CSV
+                  {exporting ? 'Exporting...' : 'Export All Nominations to CSV'}
                 </button>
               </div>
 
