@@ -1,0 +1,514 @@
+import express from 'express';
+import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
+import { createPost } from './core/post';
+import { 
+  INTERNET_AWARDS_EVENT, 
+  getCategoryById,
+  getAllCategories
+} from '../shared/config/event-config';
+import type { Nomination } from '../shared/types/event';
+
+/**
+ * Safely extract error message from any error type
+ */
+function getErrorMessage(error: unknown): string {
+  try {
+    if (error && typeof error === "object" && "message" in error) {
+      return String(error.message);
+    }
+    return String(error);
+  } catch (e) {
+    return "Unknown error";
+  }
+}
+
+// Extend Express Request type to include Devvit context
+declare global {
+  namespace Express {
+    interface Request {
+      context?: {
+        username?: string;
+        subredditName?: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
+
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.text());
+
+const router = express.Router();
+
+/**
+ * Extract post ID from Reddit URL
+ */
+function extractPostId(url: string): string | undefined {
+  const patterns = [
+    /reddit\.com\/r\/\w+\/comments\/([a-z0-9]+)/i,
+    /redd\.it\/([a-z0-9]+)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+  
+  return undefined;
+}
+
+/**
+ * Get event configuration
+ */
+router.get('/api/event/config', async (_req, res): Promise<void> => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        eventName: INTERNET_AWARDS_EVENT.name,
+        eventDescription: INTERNET_AWARDS_EVENT.description,
+        startDate: INTERNET_AWARDS_EVENT.startDate,
+        endDate: INTERNET_AWARDS_EVENT.endDate,
+        categories: INTERNET_AWARDS_EVENT.categories,
+        categoryGroups: INTERNET_AWARDS_EVENT.categoryGroups
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching event config:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to fetch event config',
+      success: false
+    });
+  }
+});
+
+/**
+ * Preview a post before submitting
+ */
+router.get('/api/preview-post', async (req, res): Promise<void> => {
+  try {
+    const { url } = req.query;
+    
+    if (!url || typeof url !== 'string') {
+      res.status(400).json({
+        error: 'Missing or invalid url parameter',
+        success: false
+      });
+      return;
+    }
+    
+    const postId = extractPostId(url);
+    
+    if (!postId) {
+      res.status(400).json({
+        error: 'Invalid Reddit URL format',
+        success: false
+      });
+      return;
+    }
+    
+    const post = await reddit.getPostById(`t3_${postId}`);
+    
+    if (!post) {
+      res.status(404).json({
+        error: 'Post not found',
+        success: false
+      });
+      return;
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        title: post.title,
+        thumbnail: post.thumbnail?.url || null,
+        permalink: post.permalink || null
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching post preview:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to fetch post preview',
+      success: false
+    });
+  }
+});
+
+/**
+ * Submit a nomination
+ */
+router.post('/api/submit-nomination', async (req, res): Promise<void> => {
+  try {
+    const { postUrl, category, reason } = req.body;
+    
+    // Validation
+    if (!postUrl) {
+      res.status(400).json({
+        error: 'Missing postUrl parameter',
+        success: false
+      });
+      return;
+    }
+
+    if (!category) {
+      res.status(400).json({
+        error: 'Missing category parameter',
+        success: false
+      });
+      return;
+    }
+
+    // Verify category exists
+    const categoryInfo = getCategoryById(category);
+    if (!categoryInfo) {
+      res.status(400).json({
+        error: 'Invalid category',
+        success: false
+      });
+      return;
+    }
+    
+    // Extract post ID from URL
+    const postId = extractPostId(postUrl);
+    
+    if (!postId) {
+      res.status(400).json({
+        error: 'Invalid Reddit URL format',
+        success: false
+      });
+      return;
+    }
+    
+    console.log(`Fetching post data for ID: ${postId} in category: ${category}`);
+    
+    // Fetch post data from Reddit
+    const post = await reddit.getPostById(`t3_${postId}`);
+    
+    if (!post) {
+      res.status(404).json({
+        error: 'Post not found',
+        success: false
+      });
+      return;
+    }
+
+    // Get nominator username from request context
+    const nominatedBy = req.context?.username || 'anonymous';
+    
+    // Get thumbnail URL
+    let thumbnailUrl = '';
+    if (post.thumbnail && post.thumbnail.url) {
+      thumbnailUrl = post.thumbnail.url;
+    }
+
+    // Create nomination object (all values must be strings for Redis hash)
+    const nomination: Record<string, string> = {
+      postId: post.id,
+      title: post.title,
+      author: post.authorName,
+      subreddit: post.subredditName,
+      karma: post.score.toString(),
+      url: postUrl,
+      category: category,
+      nominatedBy: nominatedBy,
+      nominationReason: reason || '',
+      fetchedAt: Date.now().toString(),
+      thumbnail: thumbnailUrl,
+      permalink: post.permalink || ''
+    };
+    
+    // Redis key structure: nominations:all (sorted set), nomination:category:postId (hash)
+    const memberKey = `${category}:${postId}`;
+    const nominationKey = `nomination:${memberKey}`;
+    
+    // Check if already nominated in this category
+    const existing = await redis.hGetAll(nominationKey);
+    if (Object.keys(existing).length > 0) {
+      res.status(409).json({
+        error: 'This post has already been nominated in this category',
+        success: false
+      });
+      return;
+    }
+    
+    // Store in Redis
+    // 1. Add to global sorted set for chronological ordering
+    await redis.zAdd('nominations:all', {
+      member: memberKey,
+      score: Date.now()
+    });
+    
+    // 2. Store nomination details in hash
+    await redis.hSet(nominationKey, nomination);
+    
+    console.log(`Nomination stored: ${nominationKey}`);
+    
+    res.json({
+      success: true,
+      data: nomination
+    });
+  } catch (error) {
+    console.error('Error submitting nomination:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to submit nomination',
+      success: false
+    });
+  }
+});
+
+/**
+ * Get nominations (filtered by category)
+ */
+router.get('/api/nominations', async (req, res): Promise<void> => {
+  try {
+    const { category } = req.query;
+    
+    // Get all nominations from sorted set
+    let memberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank', reverse: true });
+    
+    // Filter by category if specified
+    if (category && typeof category === 'string') {
+      memberKeys = memberKeys.filter(key => key.member.startsWith(`${category}:`));
+    }
+    
+    // Fetch nomination details
+    const nominations: Nomination[] = [];
+    for (const memberKey of memberKeys) {
+      const nominationKey = `nomination:${memberKey.member}`;
+      const data = await redis.hGetAll(nominationKey);
+      
+      if (Object.keys(data).length > 0) {
+        nominations.push(data as unknown as Nomination);
+      }
+    }
+    
+    res.json({
+      success: true,
+      data: nominations,
+      total: nominations.length
+    });
+  } catch (error) {
+    console.error('Error fetching nominations:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to fetch nominations',
+      success: false
+    });
+  }
+});
+
+/**
+ * Get overall event statistics
+ */
+router.get('/api/stats/event', async (_req, res): Promise<void> => {
+  try {
+    // Get all nominations
+    const allMemberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank' });
+    
+    const nominators = new Set<string>();
+    const nominationsByCategory: Record<string, number> = {};
+    const nominationsByCategoryGroup: Record<string, number> = {};
+    const postCounts: Record<string, { title: string; count: number }> = {};
+    
+    for (const memberKey of allMemberKeys) {
+      const nominationKey = `nomination:${memberKey.member}`;
+      const data = await redis.hGetAll(nominationKey);
+      
+      if (Object.keys(data).length > 0 && data.nominatedBy && data.category && data.postId && data.title) {
+        nominators.add(data.nominatedBy);
+        
+        // Count by category
+        const category = data.category;
+        nominationsByCategory[category] = (nominationsByCategory[category] || 0) + 1;
+        
+        // Count by category group
+        const categoryInfo = getCategoryById(category);
+        if (categoryInfo) {
+          const group = categoryInfo.categoryGroup;
+          nominationsByCategoryGroup[group] = (nominationsByCategoryGroup[group] || 0) + 1;
+        }
+        
+        // Track post counts for top posts
+        const postId = data.postId;
+        if (!postCounts[postId]) {
+          postCounts[postId] = { title: data.title, count: 0 };
+        }
+        postCounts[postId].count++;
+      }
+    }
+    
+    // Get top posts
+    const topPosts = Object.entries(postCounts)
+      .map(([postId, data]) => ({
+        postId,
+        title: data.title,
+        nominationCount: data.count
+      }))
+      .sort((a, b) => b.nominationCount - a.nominationCount)
+      .slice(0, 10);
+    
+    res.json({
+      success: true,
+      data: {
+        totalNominations: allMemberKeys.length,
+        totalNominators: nominators.size,
+        totalCategories: getAllCategories().length,
+        nominationsByCategory,
+        nominationsByCategoryGroup,
+        topPosts
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching event stats:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to fetch event stats',
+      success: false
+    });
+  }
+});
+
+/**
+ * Export nominations to CSV
+ */
+router.get('/api/export-csv', async (req, res): Promise<void> => {
+  try {
+    const { category } = req.query;
+    
+    // Get all nominations
+    let memberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank', reverse: true });
+    
+    // Filter by category if specified
+    if (category && typeof category === 'string') {
+      memberKeys = memberKeys.filter(key => key.member.startsWith(`${category}:`));
+    }
+    
+    // Build CSV
+    const headers = ['Category', 'Category Group', 'Post Title', 'Author', 'Subreddit', 'Karma', 'URL', 'Nominated By', 'Reason', 'Timestamp'];
+    let csv = headers.join(',') + '\n';
+    
+    for (const memberKey of memberKeys) {
+      const nominationKey = `nomination:${memberKey.member}`;
+      const data = await redis.hGetAll(nominationKey);
+      
+      if (Object.keys(data).length > 0) {
+        const categoryInfo = data.category ? getCategoryById(data.category) : undefined;
+        const row = [
+          data.category || '',
+          categoryInfo?.categoryGroup || '',
+          `"${(data.title || '').replace(/"/g, '""')}"`,
+          data.author || '',
+          data.subreddit || '',
+          data.karma || '0',
+          data.url || '',
+          data.nominatedBy || '',
+          `"${(data.nominationReason || '').replace(/"/g, '""')}"`,
+          data.fetchedAt ? new Date(parseInt(data.fetchedAt)).toISOString() : ''
+        ];
+        csv += row.join(',') + '\n';
+      }
+    }
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="internet-awards-nominations-${Date.now()}.csv"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting nominations:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to export nominations',
+      success: false
+    });
+  }
+});
+
+/**
+ * Delete all nominations (admin only - requires confirmation key)
+ */
+router.post('/api/delete', async (req, res): Promise<void> => {
+  try {
+    const { category, confirmationKey } = req.body;
+    
+    // Simple confirmation check (in production, use proper auth)
+    if (confirmationKey !== 'DELETE_INTERNET_AWARDS_2026') {
+      res.status(403).json({
+        error: 'Invalid confirmation key',
+        success: false
+      });
+      return;
+    }
+    
+    let deletedCount = 0;
+    let memberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank' });
+    
+    // Filter by category if specified
+    if (category && typeof category === 'string') {
+      memberKeys = memberKeys.filter(key => key.member.startsWith(`${category}:`));
+    }
+    
+    for (const memberKey of memberKeys) {
+      const nominationKey = `nomination:${memberKey.member}`;
+      await redis.del(nominationKey);
+      await redis.zRem('nominations:all', [memberKey.member]);
+      deletedCount++;
+    }
+    
+    res.json({
+      success: true,
+      deletedCount
+    });
+  } catch (error) {
+    console.error('Error deleting nominations:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to delete nominations',
+      success: false
+    });
+  }
+});
+
+/**
+ * Handle app installation
+ */
+router.post('/internal/on-app-install', async (_req, res): Promise<void> => {
+  try {
+    console.log('Internet Awards app installed successfully');
+    res.json({
+      status: 'success',
+      message: 'Internet Awards app installed'
+    });
+  } catch (error) {
+    console.error(`Error installing app: ${error}`);
+    res.status(400).json({
+      status: 'error',
+      message: 'Failed to install app'
+    });
+  }
+});
+
+// Mount router
+app.use(router);
+
+/**
+ * Internal API endpoints
+ */
+
+// Endpoint to create new post
+
+// Start server with devvit web server
+const port = getServerPort();
+const server = createServer(app);
+server.on('error', (err) => console.error(`Server error: ${err.stack}`));
+server.listen(port);
+console.log(`Server listening on port ${port}`);
+
+// Prevent server crashes from unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', getErrorMessage(error));
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', getErrorMessage(reason));
+});
