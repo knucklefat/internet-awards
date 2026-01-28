@@ -106,8 +106,28 @@ export const AdminPanel = ({ onClose }: Props) => {
     }
   };
 
-  const handleExportAll = () => {
-    window.location.href = '/api/export-csv';
+  const handleExportAll = async () => {
+    try {
+      const response = await fetch('/api/export-csv');
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`Export failed: ${errorData.error || 'Unknown error'}`);
+        return;
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `internet-awards-nominations-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export nominations');
+    }
   };
 
   return (
