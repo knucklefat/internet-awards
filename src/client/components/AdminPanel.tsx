@@ -244,15 +244,23 @@ export const AdminPanel = ({ onClose }: Props) => {
 
               {expandedSection === 'nominations' && nominations.length > 0 && (
                 <div className="admin-section expanded-list">
-                  <h3>📝 All Nominations</h3>
+                  <h3>📝 All Nominations ({nominations.length} total)</h3>
                   <div className="list-items">
                     {nominations.map((nom: any, idx: number) => (
-                      <div key={`${nom.category}-${nom.postId}-${idx}`} className="list-item">
+                      <a
+                        key={`${nom.category}-${nom.postId}-${idx}`}
+                        href={nom.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="list-item nomination-link"
+                        title="Click to view post on Reddit"
+                      >
                         <span className="item-name">{nom.title}</span>
                         <span className="item-detail">
                           {nom.category} • by u/{nom.author} • {nom.karma} karma
                         </span>
-                      </div>
+                        <span className="item-link-icon">↗</span>
+                      </a>
                     ))}
                   </div>
                 </div>

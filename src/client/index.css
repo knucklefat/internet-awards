@@ -1290,11 +1290,43 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .list-item:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Nomination links */
+.nomination-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nomination-link:hover {
+  background: rgba(0, 184, 169, 0.1);
+  border-color: rgba(0, 184, 169, 0.4);
+  transform: translateY(-2px);
+}
+
+.nomination-link:hover .item-name {
+  color: #00b8a9;
+}
+
+.nomination-link .item-link-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 1.2rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: #00b8a9;
+}
+
+.nomination-link:hover .item-link-icon {
+  opacity: 1;
 }
 
 .item-emoji {
