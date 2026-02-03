@@ -254,7 +254,7 @@ body {
 }
 
 .award-card:hover {
-  transform: translateY(-30px);
+  transform: translateY(-20px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 

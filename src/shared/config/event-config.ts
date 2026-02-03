@@ -63,41 +63,41 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   {
     id: 'best-gaming-moment',
     categoryGroup: 'gaming-hobbies',
-    name: 'Best Gaming Moment',
+    name: 'S-Tier Gaming',
     emoji: '🎮',
-    description: 'The most memorable, epic, or entertaining gaming moment shared on Reddit',
+    description: 'Greatest in-game or on video/stream moment in gaming',
     bannerImage: 'best-game.gif',
-    iconPath: '/images/icons/awards/icon-award-A.png',
+    iconPath: '/images/icons/awards/Peak Gaming Moment Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff6b9d 0%, #c44569 100%)'
   },
   {
     id: 'holy-grail-collectible',
     categoryGroup: 'gaming-hobbies',
-    name: 'Holy Grail Collectible',
+    name: 'Holy Grail',
     emoji: '🏆',
-    description: 'The most coveted, rare, or impressive collectible discovered or shared',
+    description: 'The single most desirable collectible released in the past year',
     bannerImage: 'most-collectable.gif',
-    iconPath: '/images/icons/awards/icon-award-B.png',
+    iconPath: '/images/icons/awards/Holy Grail Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #4facfe 0%, #667eea 100%)'
   },
   {
     id: 'most-quotable-quote-fiction',
     categoryGroup: 'gaming-hobbies',
-    name: 'Most Quotable Quote (fiction)',
+    name: 'Most Quotable',
     emoji: '💬',
-    description: 'The most memorable line from games, books, or creative fiction',
+    description: 'Book, short story, post, or other work of fiction most worth quoting',
     bannerImage: 'internet-awards.gif',
-    iconPath: '/images/icons/awards/icon-award-C.png',
+    iconPath: '/images/icons/awards/Most Quotable Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
   },
   {
     id: 'best-artistic-creation',
     categoryGroup: 'gaming-hobbies',
-    name: 'Best Artistic Creation',
+    name: 'Artistic Masterpiece',
     emoji: '🎨',
-    description: 'The most impressive artistic work, from digital art to handmade crafts',
+    description: 'Best original artistic creation in art, design, or crafts',
     bannerImage: 'best-creation.gif',
-    iconPath: '/images/icons/awards/icon-award-D.png',
+    iconPath: '/images/icons/awards/Artistic Masterpiece Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)'
   },
 
@@ -105,10 +105,11 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   {
     id: 'funniest-original-content',
     categoryGroup: 'funny-cute',
-    name: 'Funniest Original Content',
+    name: 'Comedic Gold',
     emoji: '😂',
-    description: 'The post that made Reddit laugh the hardest',
+    description: 'Funniest original humor skit, clip, or joke',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Comedy Gold Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ffd93d 0%, #ff8c42 100%)'
   },
   {
@@ -116,26 +117,29 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     categoryGroup: 'funny-cute',
     name: 'Outstanding Aww',
     emoji: '🐾',
-    description: 'The most adorable animal on the internet',
+    description: 'Most adorable animal on the internet',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Outstanding Aww Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ffafbd 0%, #ffc3a0 100%)'
   },
   {
     id: 'meme-won-internet',
     categoryGroup: 'funny-cute',
-    name: 'Meme that won the Internet',
+    name: 'Top Shelf Meme',
     emoji: '🔥',
-    description: 'The meme that spread like wildfire and defined the year',
+    description: 'The meme that understood its assignment',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Top Shelf Meme Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff6a00 0%, #ee0979 100%)'
   },
   {
     id: 'wholesomest-moment',
     categoryGroup: 'funny-cute',
-    name: 'The Wholesomest Moment',
+    name: 'Faith in Humanity Restorer',
     emoji: '❤️',
-    description: 'The most heartwarming piece of content that restored faith in humanity',
+    description: 'Most wholesome thing of the year',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Faith in Humanity Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
   },
 
@@ -143,37 +147,41 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   {
     id: 'best-plot-twist',
     categoryGroup: 'knowledge',
-    name: 'Best Plot Twist',
+    name: 'Real Life Plot Twist',
     emoji: '🤯',
-    description: 'The most unexpected news or event that shocked Reddit',
+    description: 'Most unexpected news/event in the past year',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Real Life Plot Twist Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #7b2ff7 0%, #1e3a8a 100%)'
   },
   {
     id: 'most-innovative-tech',
     categoryGroup: 'knowledge',
-    name: 'Most Innovative Tech',
+    name: 'Tech that Delivered',
     emoji: '🚀',
-    description: 'The technological breakthrough or innovation that changed the game',
+    description: 'Tech innovation that lived up to the hype',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Tech that Delivered Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%)'
   },
   {
     id: 'breakthrough-scientific-discovery',
     categoryGroup: 'knowledge',
-    name: 'Breakthrough Scientific Discovery',
+    name: 'Mind-Blowing Discovery',
     emoji: '🔬',
-    description: 'The scientific discovery or research that expanded our understanding',
+    description: 'Research, discovery, or finding in a field of science',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Mind-Blowing Discovery Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
   },
   {
     id: 'most-informative-episode',
     categoryGroup: 'knowledge',
-    name: 'Most Informative Episode',
+    name: 'Most Digestable Data Dump',
     emoji: '🎙️',
-    description: 'The podcast, video, or stream episode that educated and enlightened',
+    description: 'Most Informative episode (Podcast/Video/Stream) this year',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Information Transfer Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #4776e6 0%, #8e54e9 100%)'
   },
 
@@ -181,37 +189,41 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   {
     id: 'life-hack-changed-everything',
     categoryGroup: 'lifestyle-advice',
-    name: 'Life Hack That Actually Changed Everything',
+    name: 'Life-Changing Life Hack',
     emoji: '💡',
-    description: 'The practical tip or advice that genuinely improved lives',
+    description: 'A life hack that actually changed everything. Solid Advice for sleep, career, gym, cooking',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Life-Changing Life Hack Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #f7ff00 0%, #db36a4 100%)'
   },
   {
     id: 'destination-having-moment',
     categoryGroup: 'lifestyle-advice',
-    name: 'Destination Having Its Moment',
+    name: 'Detour Destination',
     emoji: '✈️',
-    description: 'The travel destination where everyone suddenly went',
+    description: 'Most underrated travel destination worth visiting',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Detour Destination Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #0acffe 0%, #495aff 100%)'
   },
   {
     id: 'best-fashion-style-trend',
     categoryGroup: 'lifestyle-advice',
-    name: 'Best Fashion/Style Trend',
+    name: 'The Look',
     emoji: '👗',
-    description: 'The fashion trend or style moment that defined the year',
+    description: 'Style / fashion / beauty trend that dominated the discourse',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/The Look Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
   },
   {
     id: 'best-original-dish',
     categoryGroup: 'lifestyle-advice',
-    name: 'Best Original Dish',
+    name: 'Chef\'s Kiss',
     emoji: '🍳',
-    description: 'The most creative, delicious, or impressive original recipe',
+    description: 'Best Culinary contribution this year',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Chef\'s Kiss Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%)'
   },
 
@@ -219,28 +231,31 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   {
     id: 'best-show-episode',
     categoryGroup: 'pop-culture',
-    name: 'Best Show Episode',
+    name: 'Redemption Arc',
     emoji: '📺',
-    description: 'The TV episode that had everyone talking',
+    description: 'Best episode or story arc in a series',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Redemption Arc Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #b92b27 0%, #1565c0 100%)'
   },
   {
     id: 'absolute-cinema-moment',
     categoryGroup: 'pop-culture',
-    name: 'Absolute Cinema Moment',
+    name: 'Absolute Cinema',
     emoji: '🎬',
-    description: 'The movie scene or moment that was pure cinematic perfection',
+    description: 'The film most worth talking about',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Absolute Cinema Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #fdc830 0%, #f37335 100%)'
   },
   {
     id: 'best-sports-moment',
     categoryGroup: 'pop-culture',
-    name: 'Best Sports Moment',
+    name: 'Peak Sports',
     emoji: '⚽',
-    description: 'The sports highlight or achievement that amazed the world',
+    description: 'Best sports highlight',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Peak Sports Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)'
   },
   {
@@ -248,8 +263,9 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     categoryGroup: 'pop-culture',
     name: 'Hottest Earworm',
     emoji: '🎵',
-    description: 'The song that got stuck in everyone\'s head',
+    description: 'Best musical contribution',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Hottest Earworm Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)'
   },
 
@@ -259,44 +275,48 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     categoryGroup: 'the-internet',
     name: 'Community Moment',
     emoji: '🤝',
-    description: 'The moment when a community came together and made magic happen',
+    description: 'The moment that brought a community and the internet together',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Community Moment Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #f857a6 0%, #ff5858 100%)'
   },
   {
     id: 'most-rewarding-rabbit-hole',
     categoryGroup: 'the-internet',
-    name: 'Most Rewarding Rabbit Hole',
+    name: 'The Rabbit Hole',
     emoji: '🐰',
-    description: 'The deep dive or thread that was worth every minute spent',
+    description: 'Deepest, most rewarding thread or thought-starter on the internet',
     bannerImage: 'internet-awards.gif',
     cardColor: 'linear-gradient(135deg, #5f72bd 0%, #9b23ea 100%)'
   },
   {
     id: 'best-channel-stream-podcast',
     categoryGroup: 'the-internet',
-    name: 'Best Channel/Stream/Podcast',
+    name: 'Positive Influence',
     emoji: '🎙️',
-    description: 'The content creator or show that consistently delivered excellence',
+    description: 'The channel/stream/podcast that had the best influence on internet discourse',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Positive Influence Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)'
   },
   {
     id: 'best-internet-trend',
     categoryGroup: 'the-internet',
-    name: 'Best Internet Trend',
+    name: 'Viral Trend',
     emoji: '📈',
-    description: 'The trend that swept across the internet and brought joy',
+    description: 'The most memorable trend that spread across the internet',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Viral Trend Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #00f260 0%, #0575e6 100%)'
   },
   {
     id: 'most-quotable-ama',
     categoryGroup: 'the-internet',
-    name: 'Most Quotable AMA',
+    name: 'Ask Me Anything',
     emoji: '💭',
-    description: 'The Ask Me Anything session filled with memorable quotes and wisdom',
+    description: 'The best Reddit AMA of the year',
     bannerImage: 'internet-awards.gif',
+    iconPath: '/images/icons/awards/Ask Me Anything Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
   },
 ];
