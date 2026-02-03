@@ -13,6 +13,7 @@ export const AdminPanel = ({ onClose }: Props) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string>('');
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
   const [eventConfig, setEventConfig] = useState<any>(null);
   const [nominations, setNominations] = useState<any[]>([]);
@@ -110,6 +111,7 @@ export const AdminPanel = ({ onClose }: Props) => {
   const handleExportAll = async () => {
     console.log('Export button clicked');
     setExporting(true);
+    setExportMessage('');
     
     try {
       console.log('Fetching /api/export-csv...');
@@ -131,7 +133,7 @@ export const AdminPanel = ({ onClose }: Props) => {
           errorMessage = text || errorMessage;
         }
         console.error('Export failed:', errorMessage);
-        alert(`Export failed: ${errorMessage}`);
+        setExportMessage(`❌ Export failed: ${errorMessage}`);
         setExporting(false);
         return;
       }
@@ -141,31 +143,24 @@ export const AdminPanel = ({ onClose }: Props) => {
       console.log('Blob size:', blob.size, 'bytes');
       
       if (blob.size === 0) {
-        alert('Export returned empty file - there may be no nominations yet');
+        setExportMessage('⚠️ Export returned empty file - there may be no nominations yet');
         setExporting(false);
         return;
       }
       
-      // Create blob URL and open in new tab (works in sandboxed iframes)
-      const url = window.URL.createObjectURL(blob);
-      const newWindow = window.open(url, '_blank');
+      // Copy CSV data to clipboard (sandboxed iframe blocks pop-ups)
+      const text = await blob.text();
+      await navigator.clipboard.writeText(text);
       
-      if (!newWindow) {
-        // Fallback: copy CSV data to clipboard
-        const text = await blob.text();
-        await navigator.clipboard.writeText(text);
-        alert('Pop-up blocked. CSV data has been copied to your clipboard instead. Paste it into a text editor and save as .csv');
-      } else {
-        alert('Export opened in new tab. Right-click and "Save As" to download the CSV file.');
-      }
+      setExportMessage(`✅ CSV data copied to clipboard! (${blob.size} bytes). Paste into a text editor and save as .csv`);
       
-      // Clean up after a delay
-      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+      console.log('Export complete - data copied to clipboard');
       
-      console.log('Export complete');
+      // Clear message after 10 seconds
+      setTimeout(() => setExportMessage(''), 10000);
     } catch (error) {
       console.error('Export error:', error);
-      alert(`Failed to export nominations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setExportMessage(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setExporting(false);
     }
@@ -310,6 +305,24 @@ export const AdminPanel = ({ onClose }: Props) => {
                 >
                   {exporting ? 'Exporting...' : 'Export All Nominations to CSV'}
                 </button>
+                {exportMessage && (
+                  <div className="export-message" style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    backgroundColor: exportMessage.includes('✅') ? 'rgba(16, 185, 129, 0.2)' : 
+                                     exportMessage.includes('❌') ? 'rgba(239, 68, 68, 0.2)' : 
+                                     'rgba(59, 130, 246, 0.2)',
+                    border: `1px solid ${exportMessage.includes('✅') ? 'rgba(16, 185, 129, 0.4)' : 
+                                         exportMessage.includes('❌') ? 'rgba(239, 68, 68, 0.4)' : 
+                                         'rgba(59, 130, 246, 0.4)'}`,
+                    color: '#fff',
+                    fontSize: '0.9rem',
+                    lineHeight: '1.4'
+                  }}>
+                    {exportMessage}
+                  </div>
+                )}
               </div>
 
               {/* Danger Zone */}
