@@ -351,8 +351,8 @@ export const App = () => {
                     <div className="award-details-section">
                       <h3>{cat.name}</h3>
                       <p className="award-description">{cat.description}</p>
+                      <div className="award-card-footer">Nominate Now</div>
                     </div>
-                    <div className="award-card-footer">Nominate Now</div>
                   </button>
                 ))}
               </div>

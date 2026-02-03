@@ -322,6 +322,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .award-card h3 {
@@ -353,14 +355,13 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(100%);
   transition: all 0.3s ease;
   border-radius: 0 0 16px 16px;
+  z-index: 1;
 }
 
 .award-card:hover .award-card-footer {
-  opacity: 1;
   transform: translateY(0);
 }
 
