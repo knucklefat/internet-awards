@@ -344,13 +344,13 @@ body {
 
 .award-card-footer {
   position: absolute;
-  bottom: -40px;
+  bottom: -48px;
   left: 0;
   right: 0;
   background: rgba(0, 226, 183, 0.9);
   color: #000000;
   text-align: center;
-  padding: 12px 8px;
+  padding: 16px 8px;
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
