@@ -113,7 +113,12 @@ export const AdminPanel = ({ onClose }: Props) => {
     
     try {
       console.log('Fetching /api/export-csv...');
-      const response = await fetch('/api/export-csv');
+      const response = await fetch('/api/export-csv', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'text/csv'
+        }
+      });
       console.log('Response received:', response.status, response.statusText);
       
       if (!response.ok) {
