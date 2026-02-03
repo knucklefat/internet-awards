@@ -182,7 +182,7 @@ body {
   color: #dbdbdb;
   margin-bottom: 30px;
   font-size: 1.1rem;
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .award-group-section {
@@ -344,13 +344,13 @@ body {
 
 .award-card-footer {
   position: absolute;
-  bottom: -32px;
+  bottom: -40px;
   left: 0;
   right: 0;
   background: rgba(0, 226, 183, 0.9);
   color: #000000;
   text-align: center;
-  padding: 8px;
+  padding: 12px 8px;
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
