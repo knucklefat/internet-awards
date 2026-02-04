@@ -316,8 +316,7 @@ export const App = () => {
           </div>
         </div>
 
-        <h3 className="main-title">The Awards</h3>
-        <p className="main-subtitle">25 Awards across 6 categories celebrating the very best on the internet</p>
+        <p className="main-subtitle">Recognizing the very best of the internet with 25 awards across 6 glorious categories.</p>
 
         {categoryGroups.map(group => {
           const groupCategories = categories.filter(cat => cat.categoryGroup === group.id);
