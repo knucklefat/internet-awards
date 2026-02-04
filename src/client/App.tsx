@@ -654,10 +654,6 @@ export const App = () => {
               </div>
             </div>
           )}
-
-          <button className="export-button" onClick={exportCSV}>
-            📥 Export All to CSV
-          </button>
         </div>
 
         {loading ? (
