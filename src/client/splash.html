@@ -115,6 +115,12 @@
         line-height: 1.2;
       }
 
+      #rotating-word {
+        color: #00E2B7;
+        font-weight: 700;
+        transition: opacity 0.3s ease;
+      }
+
       #launch-button {
         background: #00E2B7;
         color: #000000;
@@ -185,10 +191,44 @@
         <img src="/default-icon.png" alt="The Internet Awards" />
       </div>
       <h1>Who will win the internet?</h1>
-      <p class="description">Submit nominations for all your favorites now</p>
+      <p class="description">Submit nominations for your favorite <span id="rotating-word">Moment</span> of the year</p>
       <button id="launch-button">Submit Nominee</button>
     </div>
 
+    <script>
+      // Rotating word animation
+      const words = [
+        'Moment',
+        'Meme',
+        'Plot Twist',
+        'Gut Buster',
+        'Creation',
+        'Rabbit Hole',
+        'Technology',
+        'Life Hack',
+        'Highlight',
+        'Tutorial'
+      ];
+      let currentIndex = 0;
+      const rotatingWordElement = document.getElementById('rotating-word');
+
+      function rotateWord() {
+        // Fade out
+        rotatingWordElement.style.opacity = '0';
+        
+        setTimeout(() => {
+          // Change word
+          currentIndex = (currentIndex + 1) % words.length;
+          rotatingWordElement.textContent = words[currentIndex];
+          
+          // Fade in
+          rotatingWordElement.style.opacity = '1';
+        }, 300);
+      }
+
+      // Rotate every 5 seconds
+      setInterval(rotateWord, 5000);
+    </script>
     <script type="module" src="./splash.tsx"></script>
   </body>
 </html>
