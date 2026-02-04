@@ -403,6 +403,17 @@ export const App = () => {
 
         <form onSubmit={submitNomination}>
           <div className="form-group">
+            <label>Nominee Name or description</label>
+            <input
+              type="text"
+              value={nominationReason}
+              onChange={(e) => setNominationReason(e.target.value)}
+              placeholder="Briefly describe what this is..."
+              disabled={submitting}
+            />
+          </div>
+
+          <div className="form-group">
             <label>Reddit Post URL *</label>
             <input
               type="url"
@@ -423,20 +434,9 @@ export const App = () => {
             )}
           </div>
 
-          <div className="form-group">
-            <label>What is it?</label>
-            <input
-              type="text"
-              value={nominationReason}
-              onChange={(e) => setNominationReason(e.target.value)}
-              placeholder="Briefly describe what this is..."
-              disabled={submitting}
-            />
-          </div>
-
           {message && <div className="error-message">{message}</div>}
 
-          <button type="submit" className="submit-button" disabled={submitting}>
+          <button type="submit" className="submit-button" disabled={submitting || !submitUrl.trim()}>
             {submitting ? 'Submitting...' : 'Submit Nomination'}
           </button>
         </form>
