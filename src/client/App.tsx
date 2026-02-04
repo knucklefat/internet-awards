@@ -399,7 +399,7 @@ export const App = () => {
           <button className="back-button" onClick={goBack}>
             ← Back to Awards
           </button>
-          <div className="submit-nomination-label">Nomination Form</div>
+          <div className="submit-nomination-label">AWARD NOMINEE</div>
         </div>
 
         <div className="form-header">
