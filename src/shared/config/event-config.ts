@@ -68,6 +68,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Greatest in-game or on video/stream moment in gaming',
     bannerImage: 'best-game.gif',
     headerImage: '/images/award-headers/best-gaming-moment.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Peak Gaming Moment Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff6b9d 0%, #c44569 100%)'
   },
@@ -79,6 +80,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'The single most desirable collectible released in the past year',
     bannerImage: 'most-collectable.gif',
     headerImage: '/images/award-headers/holy-grail-collectible.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Holy Grail Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #4facfe 0%, #667eea 100%)'
   },
@@ -90,6 +92,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Book, short story, post, or other work of fiction most worth quoting',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/most-quotable-quote-fiction.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Most Quotable Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
   },
@@ -101,6 +104,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Best original artistic creation in art, design, or crafts',
     bannerImage: 'best-creation.gif',
     headerImage: '/images/award-headers/best-artistic-creation.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Artistic Masterpiece Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)'
   },
@@ -114,6 +118,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Funniest original humor skit, clip, or joke',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/funniest-original-content.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Comedy Gold Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ffd93d 0%, #ff8c42 100%)'
   },
@@ -125,6 +130,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Most adorable animal on the internet',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/outstanding-aww.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Outstanding Aww Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ffafbd 0%, #ffc3a0 100%)'
   },
@@ -136,6 +142,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'The meme that understood its assignment',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/meme-won-internet.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Top Shelf Meme Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff6a00 0%, #ee0979 100%)'
   },
@@ -147,6 +154,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Most wholesome thing of the year',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/wholesomest-moment.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Faith in Humanity Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
   },
@@ -160,6 +168,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Most unexpected news/event in the past year',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/best-plot-twist.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Real Life Plot Twist Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #7b2ff7 0%, #1e3a8a 100%)'
   },
@@ -171,6 +180,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Tech innovation that lived up to the hype',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/most-innovative-tech.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Tech that Delivered Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%)'
   },
@@ -182,6 +192,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Research, discovery, or finding in a field of science',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/breakthrough-scientific-discovery.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Mind-Blowing Discovery Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
   },
@@ -193,6 +204,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Most Informative episode (Podcast/Video/Stream) this year',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/most-informative-episode.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Information Transfer Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #4776e6 0%, #8e54e9 100%)'
   },
@@ -206,6 +218,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'A life hack that actually changed everything. Solid Advice for sleep, career, gym, cooking',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/life-hack-changed-everything.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Life-Changing Life Hack Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #f7ff00 0%, #db36a4 100%)'
   },
@@ -217,6 +230,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Most underrated travel destination worth visiting',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/destination-having-moment.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Detour Destination Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #0acffe 0%, #495aff 100%)'
   },
@@ -228,6 +242,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Style / fashion / beauty trend that dominated the discourse',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/best-fashion-style-trend.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/The Look Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
   },
@@ -239,6 +254,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Best Culinary contribution this year',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/best-original-dish.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Chef\'s Kiss Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%)'
   },
@@ -252,6 +268,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Best episode or story arc in a series',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/best-show-episode.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Redemption Arc Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #b92b27 0%, #1565c0 100%)'
   },
@@ -263,6 +280,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'The film most worth talking about',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/absolute-cinema-moment.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Absolute Cinema Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #fdc830 0%, #f37335 100%)'
   },
@@ -274,6 +292,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Best sports highlight',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/best-sports-moment.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Peak Sports Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)'
   },
@@ -285,6 +304,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'Best musical contribution',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/hottest-earworm.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Hottest Earworm Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)'
   },
@@ -298,6 +318,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'The moment that brought a community and the internet together',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/community-moment.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Community Moment Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #f857a6 0%, #ff5858 100%)'
   },
@@ -318,6 +339,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'The channel/stream/podcast that had the best influence on internet discourse',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/best-channel-stream-podcast.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Positive Influence Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)'
   },
@@ -329,6 +351,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'The most memorable trend that spread across the internet',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/best-internet-trend.png',
+    headerTextAlign: 'left',
     iconPath: '/images/icons/awards/Viral Trend Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #00f260 0%, #0575e6 100%)'
   },
@@ -340,6 +363,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     description: 'The best Reddit AMA of the year',
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/most-quotable-ama.png',
+    headerTextAlign: 'right',
     iconPath: '/images/icons/awards/Ask Me Anything Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
   },

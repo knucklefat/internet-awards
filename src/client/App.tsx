@@ -384,7 +384,9 @@ export const App = () => {
                 alt={selectedCategory.name}
                 className="award-header-image"
               />
-              <h1 className="award-header-title">{selectedCategory.name}</h1>
+              <h1 className={`award-header-title ${selectedCategory.headerTextAlign ? `align-${selectedCategory.headerTextAlign}` : ''}`}>
+                {selectedCategory.name}
+              </h1>
             </div>
           )}
           {!selectedCategory.headerImage && (

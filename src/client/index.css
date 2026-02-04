@@ -419,7 +419,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 2.5rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #ffffff;
   text-align: center;
   width: 90%;
@@ -430,16 +430,52 @@ body {
   padding: 0 20px;
 }
 
+/* Left-aligned header text */
+.award-header-title.align-left {
+  left: 0;
+  transform: translateY(-50%);
+  text-align: left;
+  padding-left: 40px;
+  width: auto;
+  max-width: 70%;
+}
+
+/* Right-aligned header text */
+.award-header-title.align-right {
+  left: auto;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: right;
+  padding-right: 40px;
+  padding-left: 0;
+  width: auto;
+  max-width: 70%;
+}
+
 /* Responsive font sizes for award header */
 @media (max-width: 768px) {
   .award-header-title {
     font-size: 1.8rem;
+  }
+  
+  .award-header-title.align-left,
+  .award-header-title.align-right {
+    max-width: 80%;
+    padding-left: 30px;
+    padding-right: 30px;
   }
 }
 
 @media (max-width: 480px) {
   .award-header-title {
     font-size: 1.4rem;
+  }
+  
+  .award-header-title.align-left,
+  .award-header-title.align-right {
+    max-width: 85%;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 

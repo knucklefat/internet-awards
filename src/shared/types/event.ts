@@ -11,6 +11,7 @@ export interface AwardCategory {
   description: string;
   bannerImage?: string;
   headerImage?: string; // Award header background for nomination page (1200x300px)
+  headerTextAlign?: 'left' | 'right'; // Text alignment for header title (default: center)
   iconPath?: string; // Optional custom icon path (e.g., "/images/icons/awards/icon-award-A.png")
   cardColor?: string; // Background color for the card's top section
 }
