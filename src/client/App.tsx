@@ -77,6 +77,15 @@ export const App = () => {
       const result = await response.json();
       console.log('[CLIENT] Moderator check result:', result);
       
+      // Log debug info if available
+      if (result.debug) {
+        console.log('[CLIENT] ⚠️ DEBUG INFO FROM SERVER:', result.debug);
+        console.log('[CLIENT] Username detected:', result.debug.username);
+        console.log('[CLIENT] Subreddit:', result.debug.subredditName);
+        console.log('[CLIENT] Moderators found:', result.debug.moderators);
+        console.log('[CLIENT] Your username matches?', result.debug.moderators?.includes(result.debug.username));
+      }
+      
       if (result.success) {
         const isMod = result.isModerator || false;
         console.log('[CLIENT] Setting isModerator to:', isMod);

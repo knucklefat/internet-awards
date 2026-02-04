@@ -82,7 +82,12 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
       console.log('[MOD CHECK] Missing required fields - denying access');
       res.json({
         success: true,
-        isModerator: false
+        isModerator: false,
+        debug: {
+          username,
+          subredditName,
+          reason: 'Missing username or subreddit'
+        }
       });
       return;
     }
@@ -109,7 +114,14 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
 
     res.json({
       success: true,
-      isModerator
+      isModerator,
+      debug: {
+        username,
+        subredditName,
+        moderatorCount: moderators.length,
+        moderators: moderators.map(m => m.username),
+        checkedUsername: username
+      }
     });
   } catch (error) {
     console.error('[MOD CHECK] Error:', error);
@@ -119,7 +131,10 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
     });
     res.json({
       success: true,
-      isModerator: false // Fail closed - don't show admin panel on error
+      isModerator: false,
+      debug: {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     });
   }
 });
