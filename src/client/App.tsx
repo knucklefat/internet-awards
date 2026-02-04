@@ -372,9 +372,12 @@ export const App = () => {
 
     return (
       <div className={`submit-form ${isTransitioning ? 'view-transitioning' : ''}`}>
-        <button className="back-button" onClick={goBack}>
-          ← Back to Awards
-        </button>
+        <div className="form-top-nav">
+          <button className="back-button" onClick={goBack}>
+            ← Back to Awards
+          </button>
+          <div className="submit-nomination-label">Submit Nomination</div>
+        </div>
 
         <div className="form-header">
           {selectedCategory.headerImage && (
@@ -395,7 +398,6 @@ export const App = () => {
               <span className="category-name">{selectedCategory.name}</span>
             </div>
           )}
-          <h2>Submit Nomination</h2>
           <p className="award-description-text">{selectedCategory.description}</p>
         </div>
 

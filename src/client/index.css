@@ -366,6 +366,28 @@ body {
   opacity: 1;
 }
 
+/* ===== FORM TOP NAVIGATION ===== */
+.form-top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.submit-nomination-label {
+  background: rgba(0, 226, 183, 0.9);
+  color: #000000;
+  text-align: right;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
 /* ===== BACK BUTTON ===== */
 .back-button {
   background: rgba(255, 255, 255, 0.05);
@@ -496,12 +518,6 @@ body {
 .category-name {
   font-weight: 600;
   font-size: 1rem;
-}
-
-.form-header h2 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin-bottom: 10px;
 }
 
 .award-description-text {
