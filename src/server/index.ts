@@ -71,10 +71,15 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
     const username = req.context?.username || context.username;
     const subredditName = req.context?.subredditName || context.subredditName;
     
-    console.log('Checking moderator status for:', { username, subredditName });
+    console.log('[MOD CHECK] Starting check with context:', { 
+      username, 
+      subredditName,
+      hasReqContext: !!req.context,
+      hasGlobalContext: !!context.username
+    });
     
     if (!username || !subredditName) {
-      console.log('Missing username or subreddit name');
+      console.log('[MOD CHECK] Missing required fields - denying access');
       res.json({
         success: true,
         isModerator: false
@@ -82,22 +87,36 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
       return;
     }
 
-    // Check if user is a moderator
+    // Check if user is a moderator - getModerators only needs subreddit name
+    console.log('[MOD CHECK] Fetching moderators for subreddit:', subredditName);
     const moderators = await reddit.getModerators({
-      subredditName: subredditName,
-      username: username
+      subredditName: subredditName
+    });
+    
+    console.log('[MOD CHECK] Fetched moderators:', {
+      count: moderators.length,
+      moderatorUsernames: moderators.map(m => m.username)
     });
 
     const isModerator = moderators.some(mod => mod.username === username);
     
-    console.log('Moderator check result:', { username, isModerator, modCount: moderators.length });
+    console.log('[MOD CHECK] Final result:', { 
+      username, 
+      isModerator,
+      checkedAgainst: moderators.length,
+      moderators: moderators.map(m => m.username)
+    });
 
     res.json({
       success: true,
       isModerator
     });
   } catch (error) {
-    console.error('Error checking moderator status:', error);
+    console.error('[MOD CHECK] Error:', error);
+    console.error('[MOD CHECK] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     res.json({
       success: true,
       isModerator: false // Fail closed - don't show admin panel on error
