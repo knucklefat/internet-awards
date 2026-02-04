@@ -10,7 +10,7 @@ export const CATEGORY_GROUPS: CategoryGroup[] = [
   {
     id: 'gaming-hobbies',
     name: 'Gaming & Hobbies',
-    tagline: 'The Games we played. The things we made. The legends we forged on the quest for a trade.',
+    tagline: 'The Games we played. The Things we made.',
     description: 'From technological breakthroughs, to passions turned side hustles turned careers, this category celebrates the builders, players, and makers who made our world their playground.',
     emoji: '🎮',
     accentColor: '#ff6b6b',
