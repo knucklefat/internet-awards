@@ -1,10 +1,10 @@
 import express from 'express';
-import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
+import { cache, redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
 import { createPost } from './core/post';
-import { 
-  INTERNET_AWARDS_EVENT, 
+import {
+  INTERNET_AWARDS_EVENT,
   getCategoryById,
-  getAllCategories
+  getAllCategories,
 } from '../shared/config/event-config';
 import type { Nomination } from '../shared/types/event';
 
@@ -13,12 +13,12 @@ import type { Nomination } from '../shared/types/event';
  */
 function getErrorMessage(error: unknown): string {
   try {
-    if (error && typeof error === "object" && "message" in error) {
+    if (error && typeof error === 'object' && 'message' in error) {
       return String(error.message);
     }
     return String(error);
   } catch (e) {
-    return "Unknown error";
+    return 'Unknown error';
   }
 }
 
@@ -48,107 +48,69 @@ const router = express.Router();
  * Extract post ID from Reddit URL
  */
 function extractPostId(url: string): string | undefined {
-  const patterns = [
-    /reddit\.com\/r\/\w+\/comments\/([a-z0-9]+)/i,
-    /redd\.it\/([a-z0-9]+)/i,
-  ];
-  
+  const patterns = [/reddit\.com\/r\/\w+\/comments\/([a-z0-9]+)/i, /redd\.it\/([a-z0-9]+)/i];
+
   for (const pattern of patterns) {
     const match = url.match(pattern);
     if (match) {
       return match[1];
     }
   }
-  
+
   return undefined;
 }
-
-/**
- * Temporary admin whitelist (until API is fixed)
- */
-const ADMIN_WHITELIST = ['youngluck', 'knucklefat'];
 
 /**
  * Check if current user is a moderator
  */
 router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
   try {
-    // Try multiple ways to get context
-    const username = req.context?.username || context.username || context.userId;
-    const subredditName = req.context?.subredditName || context.subredditName || context.subredditId;
-    
-    // TEMPORARY: Check whitelist first
-    if (username && ADMIN_WHITELIST.includes(username)) {
-      console.log('[MOD CHECK] User in admin whitelist:', username);
-      res.json({
-        success: true,
-        isModerator: true,
-        debug: {
-          username,
-          subredditName,
-          source: 'whitelist',
-          moderators: ADMIN_WHITELIST
-        }
-      });
-      return;
-    }
-    
-    console.log('[MOD CHECK] Full context debug:', {
-      reqContext: req.context,
-      globalContext: context,
-      extractedUsername: username,
-      extractedSubreddit: subredditName
-    });
-    
-    if (!username || !subredditName) {
-      console.log('[MOD CHECK] Missing required fields - denying access');
+    const username = req.context?.username || context.username;
+    const subredditName =
+      req.context?.subredditName || context.subredditName || context.subredditId;
+
+    if (!username) {
       res.json({
         success: true,
         isModerator: false,
         debug: {
           username,
           subredditName,
-          reason: 'Missing username or subreddit',
-          contextAvailable: {
-            reqContext: !!req.context,
-            globalContext: !!context,
-            contextKeys: Object.keys(context || {})
-          }
-        }
+          reason: 'Missing username',
+        },
       });
       return;
     }
 
-    // Check if user is a moderator - getModerators only needs subreddit name
-    console.log('[MOD CHECK] Fetching moderators for subreddit:', subredditName);
-    const moderatorsResult = await reddit.getModerators({
-      subredditName: subredditName
-    });
-    
-    console.log('[MOD CHECK] Raw moderators result:', moderatorsResult);
-    console.log('[MOD CHECK] Moderators result type:', typeof moderatorsResult);
-    console.log('[MOD CHECK] Is array?', Array.isArray(moderatorsResult));
-    
-    // Handle different possible return formats
-    let moderators: any[] = [];
-    if (Array.isArray(moderatorsResult)) {
-      moderators = moderatorsResult;
-    } else if (moderatorsResult && typeof moderatorsResult === 'object') {
-      // Might be wrapped in an object
-      moderators = (moderatorsResult as any).moderators || (moderatorsResult as any).data || [];
+    if (!subredditName) {
+      res.json({
+        success: true,
+        isModerator: false,
+        debug: {
+          username,
+          subredditName,
+          reason: 'Missing subreddit',
+        },
+      });
+      return;
     }
-    
-    console.log('[MOD CHECK] Processed moderators:', moderators);
-    
-    const moderatorUsernames = moderators.map((m: any) => m.username || m.name || m);
-    const isModerator = moderatorUsernames.some((modName: string) => modName === username);
-    
-    console.log('[MOD CHECK] Final result:', { 
-      username, 
-      isModerator,
-      moderatorCount: moderatorUsernames.length,
-      moderatorUsernames
-    });
+
+    const moderatorUsernames = await cache(
+      async (): Promise<string[]> => {
+        const moderators = await reddit
+          .getModerators({
+            subredditName,
+          })
+          .all();
+        return moderators.map((moderator) => moderator.username);
+      },
+      {
+        key: `moderators_${subredditName}`,
+        ttl: 60 * 5,
+      }
+    );
+
+    const isModerator = moderatorUsernames.includes(username);
 
     res.json({
       success: true,
@@ -158,22 +120,17 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
         subredditName,
         moderatorCount: moderatorUsernames.length,
         moderators: moderatorUsernames,
-        checkedUsername: username
-      }
+        checkedUsername: username,
+      },
     });
   } catch (error) {
     console.error('[MOD CHECK] Error:', error);
-    console.error('[MOD CHECK] Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown',
-      stack: error instanceof Error ? error.stack : undefined
-    });
     res.json({
       success: true,
       isModerator: false,
       debug: {
         error: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : undefined
-      }
+      },
     });
   }
 });
@@ -191,14 +148,14 @@ router.get('/api/event/config', async (_req, res): Promise<void> => {
         startDate: INTERNET_AWARDS_EVENT.startDate,
         endDate: INTERNET_AWARDS_EVENT.endDate,
         categories: INTERNET_AWARDS_EVENT.categories,
-        categoryGroups: INTERNET_AWARDS_EVENT.categoryGroups
-      }
+        categoryGroups: INTERNET_AWARDS_EVENT.categoryGroups,
+      },
     });
   } catch (error) {
     console.error('Error fetching event config:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to fetch event config',
-      success: false
+      success: false,
     });
   }
 });
@@ -209,48 +166,48 @@ router.get('/api/event/config', async (_req, res): Promise<void> => {
 router.get('/api/preview-post', async (req, res): Promise<void> => {
   try {
     const { url } = req.query;
-    
+
     if (!url || typeof url !== 'string') {
       res.status(400).json({
         error: 'Missing or invalid url parameter',
-        success: false
+        success: false,
       });
       return;
     }
-    
+
     const postId = extractPostId(url);
-    
+
     if (!postId) {
       res.status(400).json({
         error: 'Invalid Reddit URL format',
-        success: false
+        success: false,
       });
       return;
     }
-    
+
     const post = await reddit.getPostById(`t3_${postId}`);
-    
+
     if (!post) {
       res.status(404).json({
         error: 'Post not found',
-        success: false
+        success: false,
       });
       return;
     }
-    
+
     res.json({
       success: true,
       data: {
         title: post.title,
         thumbnail: post.thumbnail?.url || null,
-        permalink: post.permalink || null
-      }
+        permalink: post.permalink || null,
+      },
     });
   } catch (error) {
     console.error('Error fetching post preview:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to fetch post preview',
-      success: false
+      success: false,
     });
   }
 });
@@ -261,12 +218,12 @@ router.get('/api/preview-post', async (req, res): Promise<void> => {
 router.post('/api/submit-nomination', async (req, res): Promise<void> => {
   try {
     const { postUrl, category, reason } = req.body;
-    
+
     // Validation
     if (!postUrl) {
       res.status(400).json({
         error: 'Missing postUrl parameter',
-        success: false
+        success: false,
       });
       return;
     }
@@ -274,7 +231,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
     if (!category) {
       res.status(400).json({
         error: 'Missing category parameter',
-        success: false
+        success: false,
       });
       return;
     }
@@ -284,38 +241,38 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
     if (!categoryInfo) {
       res.status(400).json({
         error: 'Invalid category',
-        success: false
+        success: false,
       });
       return;
     }
-    
+
     // Extract post ID from URL
     const postId = extractPostId(postUrl);
-    
+
     if (!postId) {
       res.status(400).json({
         error: 'Invalid Reddit URL format',
-        success: false
+        success: false,
       });
       return;
     }
-    
+
     console.log(`Fetching post data for ID: ${postId} in category: ${category}`);
-    
+
     // Fetch post data from Reddit
     const post = await reddit.getPostById(`t3_${postId}`);
-    
+
     if (!post) {
       res.status(404).json({
         error: 'Post not found',
-        success: false
+        success: false,
       });
       return;
     }
 
     // Get nominator username from request context
     const nominatedBy = req.context?.username || 'anonymous';
-    
+
     // Get thumbnail URL
     let thumbnailUrl = '';
     if (post.thumbnail && post.thumbnail.url) {
@@ -325,7 +282,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
     // Redis key structure: nominations:all (sorted set), nomination:category:postId (hash)
     const memberKey = `${category}:${postId}`;
     const nominationKey = `nomination:${memberKey}`;
-    
+
     // Check if already nominated in this category
     const existing = await redis.hGetAll(nominationKey);
     if (Object.keys(existing).length > 0) {
@@ -333,22 +290,22 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       // Increment the vote count
       const currentVoteCount = parseInt(existing.voteCount || '1');
       const newVoteCount = currentVoteCount + 1;
-      
+
       await redis.hSet(nominationKey, {
-        voteCount: newVoteCount.toString()
+        voteCount: newVoteCount.toString(),
       });
-      
+
       console.log(`Vote count incremented for ${nominationKey}: ${newVoteCount}`);
-      
+
       res.json({
         success: true,
         isAdditionalVote: true,
         voteCount: newVoteCount,
-        data: existing
+        data: existing,
       });
       return;
     }
-    
+
     // Create nomination object (all values must be strings for Redis hash)
     const nomination: Record<string, string> = {
       postId: post.id,
@@ -363,31 +320,31 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       fetchedAt: Date.now().toString(),
       thumbnail: thumbnailUrl,
       permalink: post.permalink || '',
-      voteCount: '1' // Initialize vote count
+      voteCount: '1', // Initialize vote count
     };
-    
+
     // Store in Redis
     // 1. Add to global sorted set for chronological ordering
     await redis.zAdd('nominations:all', {
       member: memberKey,
-      score: Date.now()
+      score: Date.now(),
     });
-    
+
     // 2. Store nomination details in hash
     await redis.hSet(nominationKey, nomination);
-    
+
     console.log(`Nomination stored: ${nominationKey}`);
-    
+
     res.json({
       success: true,
       isAdditionalVote: false,
-      data: nomination
+      data: nomination,
     });
   } catch (error) {
     console.error('Error submitting nomination:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to submit nomination',
-      success: false
+      success: false,
     });
   }
 });
@@ -398,36 +355,36 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
 router.get('/api/nominations', async (req, res): Promise<void> => {
   try {
     const { category } = req.query;
-    
+
     // Get all nominations from sorted set
     let memberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank', reverse: true });
-    
+
     // Filter by category if specified
     if (category && typeof category === 'string') {
-      memberKeys = memberKeys.filter(key => key.member.startsWith(`${category}:`));
+      memberKeys = memberKeys.filter((key) => key.member.startsWith(`${category}:`));
     }
-    
+
     // Fetch nomination details
     const nominations: Nomination[] = [];
     for (const memberKey of memberKeys) {
       const nominationKey = `nomination:${memberKey.member}`;
       const data = await redis.hGetAll(nominationKey);
-      
+
       if (Object.keys(data).length > 0) {
         nominations.push(data as unknown as Nomination);
       }
     }
-    
+
     res.json({
       success: true,
       data: nominations,
-      total: nominations.length
+      total: nominations.length,
     });
   } catch (error) {
     console.error('Error fetching nominations:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to fetch nominations',
-      success: false
+      success: false,
     });
   }
 });
@@ -439,30 +396,36 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
   try {
     // Get all nominations
     const allMemberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank' });
-    
+
     const nominators = new Set<string>();
     const nominationsByCategory: Record<string, number> = {};
     const nominationsByCategoryGroup: Record<string, number> = {};
     const postCounts: Record<string, { title: string; count: number }> = {};
-    
+
     for (const memberKey of allMemberKeys) {
       const nominationKey = `nomination:${memberKey.member}`;
       const data = await redis.hGetAll(nominationKey);
-      
-      if (Object.keys(data).length > 0 && data.nominatedBy && data.category && data.postId && data.title) {
+
+      if (
+        Object.keys(data).length > 0 &&
+        data.nominatedBy &&
+        data.category &&
+        data.postId &&
+        data.title
+      ) {
         nominators.add(data.nominatedBy);
-        
+
         // Count by category
         const category = data.category;
         nominationsByCategory[category] = (nominationsByCategory[category] || 0) + 1;
-        
+
         // Count by category group
         const categoryInfo = getCategoryById(category);
         if (categoryInfo) {
           const group = categoryInfo.categoryGroup;
           nominationsByCategoryGroup[group] = (nominationsByCategoryGroup[group] || 0) + 1;
         }
-        
+
         // Track post counts for top posts
         const postId = data.postId;
         if (!postCounts[postId]) {
@@ -471,17 +434,17 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
         postCounts[postId].count++;
       }
     }
-    
+
     // Get top posts
     const topPosts = Object.entries(postCounts)
       .map(([postId, data]) => ({
         postId,
         title: data.title,
-        nominationCount: data.count
+        nominationCount: data.count,
       }))
       .sort((a, b) => b.nominationCount - a.nominationCount)
       .slice(0, 10);
-    
+
     res.json({
       success: true,
       data: {
@@ -490,14 +453,14 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
         totalCategories: getAllCategories().length,
         nominationsByCategory,
         nominationsByCategoryGroup,
-        topPosts
-      }
+        topPosts,
+      },
     });
   } catch (error) {
     console.error('Error fetching event stats:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to fetch event stats',
-      success: false
+      success: false,
     });
   }
 });
@@ -508,23 +471,34 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
 router.get('/api/export-csv', async (req, res): Promise<void> => {
   try {
     const { category } = req.query;
-    
+
     // Get all nominations
     let memberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank', reverse: true });
-    
+
     // Filter by category if specified
     if (category && typeof category === 'string') {
-      memberKeys = memberKeys.filter(key => key.member.startsWith(`${category}:`));
+      memberKeys = memberKeys.filter((key) => key.member.startsWith(`${category}:`));
     }
-    
+
     // Build CSV
-    const headers = ['Category', 'Category Group', 'Post Title', 'Author', 'Subreddit', 'Karma', 'URL', 'Nominated By', 'Reason', 'Timestamp'];
+    const headers = [
+      'Category',
+      'Category Group',
+      'Post Title',
+      'Author',
+      'Subreddit',
+      'Karma',
+      'URL',
+      'Nominated By',
+      'Reason',
+      'Timestamp',
+    ];
     let csv = headers.join(',') + '\n';
-    
+
     for (const memberKey of memberKeys) {
       const nominationKey = `nomination:${memberKey.member}`;
       const data = await redis.hGetAll(nominationKey);
-      
+
       if (Object.keys(data).length > 0) {
         const categoryInfo = data.category ? getCategoryById(data.category) : undefined;
         const row = [
@@ -537,20 +511,23 @@ router.get('/api/export-csv', async (req, res): Promise<void> => {
           data.url || '',
           data.nominatedBy || '',
           `"${(data.nominationReason || '').replace(/"/g, '""')}"`,
-          data.fetchedAt ? new Date(parseInt(data.fetchedAt)).toISOString() : ''
+          data.fetchedAt ? new Date(parseInt(data.fetchedAt)).toISOString() : '',
         ];
         csv += row.join(',') + '\n';
       }
     }
-    
+
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="internet-awards-nominations-${Date.now()}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="internet-awards-nominations-${Date.now()}.csv"`
+    );
     res.send(csv);
   } catch (error) {
     console.error('Error exporting nominations:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to export nominations',
-      success: false
+      success: false,
     });
   }
 });
@@ -561,40 +538,40 @@ router.get('/api/export-csv', async (req, res): Promise<void> => {
 router.post('/api/delete', async (req, res): Promise<void> => {
   try {
     const { category, confirmationKey } = req.body;
-    
+
     // Simple confirmation check (in production, use proper auth)
     if (confirmationKey !== 'DELETE_INTERNET_AWARDS_2026') {
       res.status(403).json({
         error: 'Invalid confirmation key',
-        success: false
+        success: false,
       });
       return;
     }
-    
+
     let deletedCount = 0;
     let memberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank' });
-    
+
     // Filter by category if specified
     if (category && typeof category === 'string') {
-      memberKeys = memberKeys.filter(key => key.member.startsWith(`${category}:`));
+      memberKeys = memberKeys.filter((key) => key.member.startsWith(`${category}:`));
     }
-    
+
     for (const memberKey of memberKeys) {
       const nominationKey = `nomination:${memberKey.member}`;
       await redis.del(nominationKey);
       await redis.zRem('nominations:all', [memberKey.member]);
       deletedCount++;
     }
-    
+
     res.json({
       success: true,
-      deletedCount
+      deletedCount,
     });
   } catch (error) {
     console.error('Error deleting nominations:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to delete nominations',
-      success: false
+      success: false,
     });
   }
 });
@@ -607,13 +584,13 @@ router.post('/internal/on-app-install', async (_req, res): Promise<void> => {
     console.log('Internet Awards app installed successfully');
     res.json({
       status: 'success',
-      message: 'Internet Awards app installed'
+      message: 'Internet Awards app installed',
     });
   } catch (error) {
     console.error(`Error installing app: ${error}`);
     res.status(400).json({
       status: 'error',
-      message: 'Failed to install app'
+      message: 'Failed to install app',
     });
   }
 });
@@ -630,7 +607,7 @@ router.post('/internal/menu/post-create', async (_req, res): Promise<void> => {
       throw new Error('Subreddit name not found in context');
     }
     const post = await createPost();
-    
+
     res.json({
       navigateTo: `https://reddit.com/r/${subredditName}/comments/${post.id}`,
     });
