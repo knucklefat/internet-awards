@@ -293,7 +293,7 @@ export const App = () => {
         </div>
 
         <h3 className="main-title">The Awards</h3>
-        <p className="main-subtitle">Recognizing the very best of the Internet. Nominate for 25 Awards across 6 categories.</p>
+        <p className="main-subtitle">25 Awards across 6 categories celebrating the very best on the internet</p>
 
         {categoryGroups.map(group => {
           const groupCategories = categories.filter(cat => cat.categoryGroup === group.id);
