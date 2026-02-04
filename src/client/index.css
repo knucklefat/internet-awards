@@ -376,11 +376,11 @@ body {
 }
 
 .submit-nomination-label {
-  color: #ffffff;
+  color: #d2d2d2;
   text-align: right;
   padding: 10px 0;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
