@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Fade in
         rotatingWordElement.style.opacity = '1';
-      }, 300);
+      }, 700);
     }
 
-    // Rotate every 5 seconds
-    setInterval(rotateWord, 5000);
+    // Rotate every 3 seconds
+    setInterval(rotateWord, 3000);
   }
 });
