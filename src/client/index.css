@@ -178,10 +178,10 @@ body {
 
 .main-subtitle {
   text-align: center;
-  font-weight: 800;
+  font-weight: 600;
   color: #dbdbdb;
   margin-bottom: 30px;
-  font-size: 1.2rem;
+  font-size: 1.55rem;
   line-height: 1.2;
   padding: 16px 0 6px 0;
 }
@@ -445,7 +445,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 4.5rem;
+  font-size: 3.5rem;
   font-weight: 900;
   color: #ffffff;
   text-align: center;
@@ -482,7 +482,7 @@ body {
 /* Responsive font sizes for award header */
 @media (max-width: 768px) {
   .award-header-title {
-    font-size: 3rem;
+    font-size: 2rem;
   }
   
   .award-header-title.align-left,
@@ -495,7 +495,7 @@ body {
 
 @media (max-width: 480px) {
   .award-header-title {
-    font-size: 2.1rem;
+    font-size: 1.1rem;
   }
   
   .award-header-title.align-left,
