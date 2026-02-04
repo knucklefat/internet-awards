@@ -383,11 +383,12 @@ body {
   color: #616161;
   text-align: right;
   padding: 2px 0;
-  font-size: 1.1rem;
+  font-size: 1.65rem;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  margin-top: -8px;
 }
 
 /* ===== BACK BUTTON ===== */
@@ -444,7 +445,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 4rem;
+  font-size: 6rem;
   font-weight: 900;
   color: #ffffff;
   text-align: center;
@@ -481,7 +482,7 @@ body {
 /* Responsive font sizes for award header */
 @media (max-width: 768px) {
   .award-header-title {
-    font-size: 2.4rem;
+    font-size: 3.6rem;
   }
   
   .award-header-title.align-left,
@@ -494,7 +495,7 @@ body {
 
 @media (max-width: 480px) {
   .award-header-title {
-    font-size: 1.4rem;
+    font-size: 2.1rem;
   }
   
   .award-header-title.align-left,
