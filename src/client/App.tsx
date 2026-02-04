@@ -30,6 +30,7 @@ export const App = () => {
   
   // Load event configuration and check moderator status on mount
   useEffect(() => {
+    console.log('[CLIENT] App mounted - loading configuration and checking moderator status');
     loadEventConfig();
     checkModeratorStatus();
   }, []);
@@ -69,14 +70,23 @@ export const App = () => {
 
   const checkModeratorStatus = async () => {
     try {
+      console.log('[CLIENT] Starting moderator check...');
       const response = await fetch('/api/user/is-moderator');
+      console.log('[CLIENT] Moderator check response:', response.status, response.statusText);
+      
       const result = await response.json();
+      console.log('[CLIENT] Moderator check result:', result);
       
       if (result.success) {
-        setIsModerator(result.isModerator || false);
+        const isMod = result.isModerator || false;
+        console.log('[CLIENT] Setting isModerator to:', isMod);
+        setIsModerator(isMod);
+      } else {
+        console.log('[CLIENT] Moderator check failed, setting to false');
+        setIsModerator(false);
       }
     } catch (error) {
-      console.error('Error checking moderator status:', error);
+      console.error('[CLIENT] Error checking moderator status:', error);
       setIsModerator(false);
     }
   };
@@ -744,12 +754,18 @@ export const App = () => {
       {isModerator && (
         <button
           className="admin-trigger-button"
-          onClick={() => setShowAdminPanel(true)}
+          onClick={() => {
+            console.log('[CLIENT] Admin panel button clicked');
+            setShowAdminPanel(true);
+          }}
           title="Admin Panel (or type 'admin' anywhere)"
         >
           ⚙️
         </button>
       )}
+      
+      {/* Debug: Log moderator status */}
+      {console.log('[CLIENT] Render - isModerator:', isModerator)}
 
       {/* Admin Panel Modal (moderators only) */}
       {isModerator && showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
