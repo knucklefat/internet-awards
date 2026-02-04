@@ -183,6 +183,7 @@ body {
   margin-bottom: 30px;
   font-size: 1rem;
   line-height: 1.2;
+  padding: 16px 0 6px 0;
 }
 
 .award-group-section {
@@ -207,8 +208,8 @@ body {
 }
 
 .award-group-title {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 800;
   margin-bottom: 8px;
   color: #ffffff;
   display: flex;
@@ -460,7 +461,7 @@ body {
   left: 0;
   transform: translateY(-50%);
   text-align: left;
-  padding-left: 40px;
+  padding-left: 52px;
   width: auto;
   max-width: 70%;
 }
@@ -471,7 +472,7 @@ body {
   right: 0;
   transform: translateY(-50%);
   text-align: right;
-  padding-right: 40px;
+  padding-right: 52px;
   padding-left: 0;
   width: auto;
   max-width: 70%;
