@@ -377,10 +377,22 @@ export const App = () => {
         </button>
 
         <div className="form-header">
-          <div className="category-badge">
-            <span className="category-emoji">{selectedCategory.emoji}</span>
-            <span className="category-name">{selectedCategory.name}</span>
-          </div>
+          {selectedCategory.headerImage && (
+            <div className="award-header-banner">
+              <img 
+                src={selectedCategory.headerImage} 
+                alt={selectedCategory.name}
+                className="award-header-image"
+              />
+              <h1 className="award-header-title">{selectedCategory.name}</h1>
+            </div>
+          )}
+          {!selectedCategory.headerImage && (
+            <div className="category-badge">
+              <span className="category-emoji">{selectedCategory.emoji}</span>
+              <span className="category-name">{selectedCategory.name}</span>
+            </div>
+          )}
           <h2>Submit Nomination</h2>
           <p className="award-description-text">{selectedCategory.description}</p>
         </div>

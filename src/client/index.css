@@ -397,6 +397,52 @@ body {
   margin-bottom: 30px;
 }
 
+.award-header-banner {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.award-header-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.award-header-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  width: 90%;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5),
+               0 4px 16px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+  padding: 0 20px;
+}
+
+/* Responsive font sizes for award header */
+@media (max-width: 768px) {
+  .award-header-title {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .award-header-title {
+    font-size: 1.4rem;
+  }
+}
+
 .category-badge {
   display: inline-flex;
   align-items: center;
