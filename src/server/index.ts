@@ -64,6 +64,11 @@ function extractPostId(url: string): string | undefined {
 }
 
 /**
+ * Temporary admin whitelist (until API is fixed)
+ */
+const ADMIN_WHITELIST = ['youngluck', 'knucklefat'];
+
+/**
  * Check if current user is a moderator
  */
 router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
@@ -71,6 +76,22 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
     // Try multiple ways to get context
     const username = req.context?.username || context.username || context.userId;
     const subredditName = req.context?.subredditName || context.subredditName || context.subredditId;
+    
+    // TEMPORARY: Check whitelist first
+    if (username && ADMIN_WHITELIST.includes(username)) {
+      console.log('[MOD CHECK] User in admin whitelist:', username);
+      res.json({
+        success: true,
+        isModerator: true,
+        debug: {
+          username,
+          subredditName,
+          source: 'whitelist',
+          moderators: ADMIN_WHITELIST
+        }
+      });
+      return;
+    }
     
     console.log('[MOD CHECK] Full context debug:', {
       reqContext: req.context,
