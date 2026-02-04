@@ -165,6 +165,12 @@ export const App = () => {
     setTimeout(() => setToast(null), 5000);
   };
 
+  const handleDisabledButtonInteraction = () => {
+    if (!submitUrl.trim()) {
+      showToast('All nominees require supporting link', 'error');
+    }
+  };
+
   const submitNomination = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -436,7 +442,22 @@ export const App = () => {
 
           {message && <div className="error-message">{message}</div>}
 
-          <button type="submit" className="submit-button" disabled={submitting || !submitUrl.trim()}>
+          <button 
+            type="submit" 
+            className="submit-button" 
+            disabled={submitting || !submitUrl.trim()}
+            onClick={(e) => {
+              if (submitting || !submitUrl.trim()) {
+                e.preventDefault();
+                handleDisabledButtonInteraction();
+              }
+            }}
+            onMouseEnter={() => {
+              if (submitting || !submitUrl.trim()) {
+                handleDisabledButtonInteraction();
+              }
+            }}
+          >
             {submitting ? 'Submitting...' : 'Submit Nomination'}
           </button>
         </form>
