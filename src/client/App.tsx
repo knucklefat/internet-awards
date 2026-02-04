@@ -262,12 +262,12 @@ export const App = () => {
   // Map category group IDs to header images
   const getCategoryHeaderImage = (groupId: string): string => {
     const headerMap: Record<string, string> = {
-      'gaming-hobbies': '/images/headers/header-games.png',
-      'funny-cute': '/images/headers/header-funnycute.png',
-      'knowledge': '/images/headers/header-knowledge.png',
-      'lifestyle-advice': '/images/headers/header-lifestyle.png',
-      'pop-culture': '/images/headers/header-culture.png',
-      'the-internet': '/images/headers/header-internet.png',
+      'gaming-hobbies': '/images/category-headers/header-games.png',
+      'funny-cute': '/images/category-headers/header-funnycute.png',
+      'knowledge': '/images/category-headers/header-knowledge.png',
+      'lifestyle-advice': '/images/category-headers/header-lifestyle.png',
+      'pop-culture': '/images/category-headers/header-culture.png',
+      'the-internet': '/images/category-headers/header-internet.png',
     };
     return headerMap[groupId] || '';
   };
