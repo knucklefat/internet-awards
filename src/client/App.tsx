@@ -26,14 +26,18 @@ export const App = () => {
   const [postPreview, setPostPreview] = useState<{title: string; thumbnail: string | null} | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
   
-  // Load event configuration on mount
+  // Load event configuration and check moderator status on mount
   useEffect(() => {
     loadEventConfig();
+    checkModeratorStatus();
   }, []);
 
-  // Admin hotkey
+  // Admin hotkey (only for moderators)
   useEffect(() => {
+    if (!isModerator) return;
+    
     let adminKeys = '';
     const handleKeyPress = (e: KeyboardEvent) => {
       adminKeys += e.key.toLowerCase();
@@ -45,7 +49,7 @@ export const App = () => {
     };
     window.addEventListener('keypress', handleKeyPress);
     return () => window.removeEventListener('keypress', handleKeyPress);
-  }, []);
+  }, [isModerator]);
 
   const loadEventConfig = async () => {
     try {
@@ -60,6 +64,20 @@ export const App = () => {
       console.error('Error loading config:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkModeratorStatus = async () => {
+    try {
+      const response = await fetch('/api/user/is-moderator');
+      const result = await response.json();
+      
+      if (result.success) {
+        setIsModerator(result.isModerator || false);
+      }
+    } catch (error) {
+      console.error('Error checking moderator status:', error);
+      setIsModerator(false);
     }
   };
 
@@ -382,7 +400,7 @@ export const App = () => {
           <button className="back-button" onClick={goBack}>
             ← Back to Awards
           </button>
-          <div className="submit-nomination-label">Submit Nomination</div>
+          <div className="submit-nomination-label">Nomination Form</div>
         </div>
 
         <div className="form-header">
@@ -723,17 +741,19 @@ export const App = () => {
       {view === 'submit' && renderSubmitForm()}
       {view === 'list' && renderNominationsList()}
 
-      {/* Admin Panel Trigger Button (always visible) */}
-      <button
-        className="admin-trigger-button"
-        onClick={() => setShowAdminPanel(true)}
-        title="Admin Panel (or type 'admin' anywhere)"
-      >
-        ⚙️
-      </button>
+      {/* Admin Panel Trigger Button (moderators only) */}
+      {isModerator && (
+        <button
+          className="admin-trigger-button"
+          onClick={() => setShowAdminPanel(true)}
+          title="Admin Panel (or type 'admin' anywhere)"
+        >
+          ⚙️
+        </button>
+      )}
 
-      {/* Admin Panel Modal */}
-      {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+      {/* Admin Panel Modal (moderators only) */}
+      {isModerator && showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
     </div>
   );
 };

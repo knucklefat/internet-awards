@@ -64,6 +64,43 @@ function extractPostId(url: string): string | undefined {
 }
 
 /**
+ * Check if current user is a moderator
+ */
+router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
+  try {
+    const username = context.username;
+    const subredditName = context.subredditName;
+    
+    if (!username || !subredditName) {
+      res.json({
+        success: true,
+        isModerator: false
+      });
+      return;
+    }
+
+    // Check if user is a moderator
+    const moderators = await reddit.getModerators({
+      subredditName: subredditName,
+      username: username
+    });
+
+    const isModerator = moderators.some(mod => mod.username === username);
+
+    res.json({
+      success: true,
+      isModerator
+    });
+  } catch (error) {
+    console.error('Error checking moderator status:', error);
+    res.json({
+      success: true,
+      isModerator: false // Fail closed - don't show admin panel on error
+    });
+  }
+});
+
+/**
  * Get event configuration
  */
 router.get('/api/event/config', async (_req, res): Promise<void> => {
