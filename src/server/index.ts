@@ -68,14 +68,15 @@ function extractPostId(url: string): string | undefined {
  */
 router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
   try {
-    const username = req.context?.username || context.username;
-    const subredditName = req.context?.subredditName || context.subredditName;
+    // Try multiple ways to get context
+    const username = req.context?.username || context.username || context.userId;
+    const subredditName = req.context?.subredditName || context.subredditName || context.subredditId;
     
-    console.log('[MOD CHECK] Starting check with context:', { 
-      username, 
-      subredditName,
-      hasReqContext: !!req.context,
-      hasGlobalContext: !!context.username
+    console.log('[MOD CHECK] Full context debug:', {
+      reqContext: req.context,
+      globalContext: context,
+      extractedUsername: username,
+      extractedSubreddit: subredditName
     });
     
     if (!username || !subredditName) {
@@ -86,7 +87,12 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
         debug: {
           username,
           subredditName,
-          reason: 'Missing username or subreddit'
+          reason: 'Missing username or subreddit',
+          contextAvailable: {
+            reqContext: !!req.context,
+            globalContext: !!context,
+            contextKeys: Object.keys(context || {})
+          }
         }
       });
       return;
@@ -94,22 +100,33 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
 
     // Check if user is a moderator - getModerators only needs subreddit name
     console.log('[MOD CHECK] Fetching moderators for subreddit:', subredditName);
-    const moderators = await reddit.getModerators({
+    const moderatorsResult = await reddit.getModerators({
       subredditName: subredditName
     });
     
-    console.log('[MOD CHECK] Fetched moderators:', {
-      count: moderators.length,
-      moderatorUsernames: moderators.map(m => m.username)
-    });
-
-    const isModerator = moderators.some(mod => mod.username === username);
+    console.log('[MOD CHECK] Raw moderators result:', moderatorsResult);
+    console.log('[MOD CHECK] Moderators result type:', typeof moderatorsResult);
+    console.log('[MOD CHECK] Is array?', Array.isArray(moderatorsResult));
+    
+    // Handle different possible return formats
+    let moderators: any[] = [];
+    if (Array.isArray(moderatorsResult)) {
+      moderators = moderatorsResult;
+    } else if (moderatorsResult && typeof moderatorsResult === 'object') {
+      // Might be wrapped in an object
+      moderators = (moderatorsResult as any).moderators || (moderatorsResult as any).data || [];
+    }
+    
+    console.log('[MOD CHECK] Processed moderators:', moderators);
+    
+    const moderatorUsernames = moderators.map((m: any) => m.username || m.name || m);
+    const isModerator = moderatorUsernames.some((modName: string) => modName === username);
     
     console.log('[MOD CHECK] Final result:', { 
       username, 
       isModerator,
-      checkedAgainst: moderators.length,
-      moderators: moderators.map(m => m.username)
+      moderatorCount: moderatorUsernames.length,
+      moderatorUsernames
     });
 
     res.json({
@@ -118,8 +135,8 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
       debug: {
         username,
         subredditName,
-        moderatorCount: moderators.length,
-        moderators: moderators.map(m => m.username),
+        moderatorCount: moderatorUsernames.length,
+        moderators: moderatorUsernames,
         checkedUsername: username
       }
     });
@@ -133,7 +150,8 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
       success: true,
       isModerator: false,
       debug: {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined
       }
     });
   }
