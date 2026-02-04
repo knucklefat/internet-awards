@@ -68,10 +68,13 @@ function extractPostId(url: string): string | undefined {
  */
 router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
   try {
-    const username = context.username;
-    const subredditName = context.subredditName;
+    const username = req.context?.username || context.username;
+    const subredditName = req.context?.subredditName || context.subredditName;
+    
+    console.log('Checking moderator status for:', { username, subredditName });
     
     if (!username || !subredditName) {
+      console.log('Missing username or subreddit name');
       res.json({
         success: true,
         isModerator: false
@@ -86,6 +89,8 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
     });
 
     const isModerator = moderators.some(mod => mod.username === username);
+    
+    console.log('Moderator check result:', { username, isModerator, modCount: moderators.length });
 
     res.json({
       success: true,
