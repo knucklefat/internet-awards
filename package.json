@@ -21,6 +21,7 @@
     "login": "devvit login",
     "launch": "npm run build && npm run deploy && devvit publish",
     "prettier": "prettier-package-json --write ./package.json && prettier --write .",
+    "resolve-csv": "node scripts/add-resolved-thing.js",
     "type-check": "tsc --build"
   },
   "dependencies": {

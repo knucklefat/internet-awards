@@ -246,22 +246,34 @@ export const AdminPanel = ({ onClose }: Props) => {
                 <div className="admin-section expanded-list">
                   <h3>📝 All Nominations ({nominations.length} total)</h3>
                   <div className="list-items">
-                    {nominations.map((nom: any, idx: number) => (
-                      <a
-                        key={`${nom.category}-${nom.postId}-${idx}`}
-                        href={nom.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="list-item nomination-link"
-                        title="Click to view post on Reddit"
-                      >
-                        <span className="item-name">{nom.title}</span>
-                        <span className="item-detail">
-                          {nom.category} • by u/{nom.author} • {nom.karma} karma
-                        </span>
-                        <span className="item-link-icon">↗</span>
-                      </a>
-                    ))}
+                    {nominations.map((nom: any, idx: number) => {
+                      const hasLink = Boolean(nom.url && nom.url.trim());
+                      const key = `${nom.category}-${nom.postId || 'free'}-${idx}`;
+                      if (hasLink) {
+                        return (
+                          <a
+                            key={key}
+                            href={nom.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="list-item nomination-link"
+                            title="Click to view post on Reddit"
+                          >
+                            <span className="item-name">{nom.title}</span>
+                            <span className="item-detail">
+                              {nom.category} • by u/{nom.author || '—'} • {nom.karma || '0'} karma
+                            </span>
+                            <span className="item-link-icon">↗</span>
+                          </a>
+                        );
+                      }
+                      return (
+                        <div key={key} className="list-item nomination-link no-link">
+                          <span className="item-name">{nom.title}</span>
+                          <span className="item-detail">{nom.category} • text nomination</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

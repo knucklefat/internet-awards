@@ -12,7 +12,8 @@ export const App = () => {
   const [nominations, setNominations] = useState<Nomination[]>([]);
   const [eventStats, setEventStats] = useState<EventStats | null>(null);
   
-  // Form state
+  // Form state: name/description (required), optional link, optional reason
+  const [nominationTitle, setNominationTitle] = useState('');
   const [submitUrl, setSubmitUrl] = useState('');
   const [nominationReason, setNominationReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -186,6 +187,7 @@ export const App = () => {
       if (view === 'submit') {
         setView('category-select');
         setSelectedCategory(null);
+        setNominationTitle('');
         setSubmitUrl('');
         setNominationReason('');
         setMessage('');
@@ -203,8 +205,8 @@ export const App = () => {
   };
 
   const handleDisabledButtonInteraction = () => {
-    if (!submitUrl.trim()) {
-      showToast('All nominees require supporting link', 'error');
+    if (!nominationTitle.trim()) {
+      showToast('Please enter a nominee name or description', 'error');
     }
   };
 
@@ -218,9 +220,10 @@ export const App = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          postUrl: submitUrl,
           category: selectedCategory?.id,
-          reason: nominationReason,
+          title: nominationTitle.trim(),
+          postUrl: submitUrl.trim() || undefined,
+          reason: nominationReason.trim() || undefined,
         }),
       });
 
@@ -254,15 +257,21 @@ export const App = () => {
     }
   };
 
-  const nominateThisToo = async (postUrl: string, categoryId: string) => {
+  const nominateThisToo = async (
+    categoryId: string,
+    options: { postUrl?: string; thingSlug?: string },
+    reloadCategoryId?: string
+  ) => {
+    const { postUrl, thingSlug } = options;
+    if (!postUrl && !thingSlug) return;
     try {
       const response = await fetch('/api/submit-nomination', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          postUrl: postUrl,
           category: categoryId,
-          reason: '', // No reason needed for "second" nominations
+          ...(postUrl ? { postUrl } : {}),
+          ...(thingSlug ? { thingSlug } : {}),
         }),
       });
 
@@ -274,27 +283,18 @@ export const App = () => {
         } else {
           showToast('Your nomination has been added!', 'success');
         }
-        loadNominations(categoryId);
+        if (reloadCategoryId != null) {
+          loadNominations(reloadCategoryId);
+        } else {
+          loadNominations();
+          loadEventStats();
+        }
       } else {
         showToast(result.error || 'Failed to add nomination', 'error');
       }
     } catch (error) {
       showToast('Error adding nomination', 'error');
       console.error('Nominate error:', error);
-    }
-  };
-
-  const exportCSV = async () => {
-    try {
-      const url = selectedCategory 
-        ? `/api/export-csv?category=${selectedCategory.id}`
-        : '/api/export-csv';
-      
-      window.location.href = url;
-      showToast('Exporting nominations...', 'success');
-    } catch (error) {
-      console.error('Export error:', error);
-      showToast('Failed to export', 'error');
     }
   };
 
@@ -443,26 +443,28 @@ export const App = () => {
           <p className="award-description-text">{selectedCategory.description}</p>
         </div>
 
-        <form onSubmit={submitNomination}>
+        <form onSubmit={submitNomination} noValidate>
           <div className="form-group">
-            <label>Nominee Name or description</label>
+            <label>Nominee name or description *</label>
             <input
               type="text"
-              value={nominationReason}
-              onChange={(e) => setNominationReason(e.target.value)}
-              placeholder="Briefly describe what this is..."
+              value={nominationTitle}
+              onChange={(e) => setNominationTitle(e.target.value)}
+              placeholder="e.g. Elden Ring, that viral cat video, a specific post..."
               disabled={submitting}
+              required
             />
           </div>
 
           <div className="form-group">
-            <label>Reddit Post URL *</label>
+            <label>Supporting Post/community (Optional)</label>
             <input
-              type="url"
+              type="text"
+              inputMode="url"
+              autoComplete="url"
               value={submitUrl}
               onChange={(e) => setSubmitUrl(e.target.value)}
               placeholder="https://reddit.com/r/subreddit/comments/..."
-              required
               disabled={submitting}
             />
             {previewLoading && <div className="preview-loading">Loading preview...</div>}
@@ -476,20 +478,31 @@ export const App = () => {
             )}
           </div>
 
+          <div className="form-group">
+            <label>Why does this deserve the award? (optional)</label>
+            <input
+              type="text"
+              value={nominationReason}
+              onChange={(e) => setNominationReason(e.target.value)}
+              placeholder="Briefly say why..."
+              disabled={submitting}
+            />
+          </div>
+
           {message && <div className="error-message">{message}</div>}
 
           <button 
             type="submit" 
             className="submit-button" 
-            disabled={submitting || !submitUrl.trim()}
+            disabled={submitting || !nominationTitle.trim()}
             onClick={(e) => {
-              if (submitting || !submitUrl.trim()) {
+              if (submitting || !nominationTitle.trim()) {
                 e.preventDefault();
                 handleDisabledButtonInteraction();
               }
             }}
             onMouseEnter={() => {
-              if (submitting || !submitUrl.trim()) {
+              if (submitting || !nominationTitle.trim()) {
                 handleDisabledButtonInteraction();
               }
             }}
@@ -522,6 +535,7 @@ export const App = () => {
               <div className="nominations-grid">
                 {nominations.slice(0, 5).map((nom, idx) => {
                   const category = categories.find(c => c.id === nom.category);
+                  const hasLink = Boolean(nom.url && nom.url.trim());
                   return (
                     <div key={idx} className="nomination-card">
                       {nom.thumbnail && (
@@ -529,7 +543,7 @@ export const App = () => {
                           src={nom.thumbnail} 
                           alt={nom.title} 
                           className="nomination-thumbnail"
-                          onClick={() => window.open(nom.url, '_blank', 'noopener,noreferrer')}
+                          onClick={() => hasLink && window.open(nom.url!, '_blank', 'noopener,noreferrer')}
                         />
                       )}
                       <div className="nomination-content">
@@ -552,28 +566,44 @@ export const App = () => {
                           </div>
                         )}
                         <h4 
-                          className="nomination-title"
-                          onClick={() => window.open(nom.url, '_blank', 'noopener,noreferrer')}
+                          className={`nomination-title ${hasLink ? 'clickable' : ''}`}
+                          onClick={() => hasLink && window.open(nom.url!, '_blank', 'noopener,noreferrer')}
                         >
                           {truncateTitle(nom.title, 100)}
                         </h4>
                       </div>
                       <div className="nomination-actions">
-                        <a 
-                          href={nom.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="view-post-link"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          🔗 VIEW POST
-                        </a>
-                        <button 
-                          className="nominate-too-button"
-                          onClick={() => nominateThisToo(nom.url, nom.category)}
-                        >
-                          ⬆️ +1 <span className="nominate-text">Nominate too</span>
-                        </button>
+                        {hasLink && (
+                          <a 
+                            href={nom.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="view-post-link"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            🔗 VIEW POST
+                          </a>
+                        )}
+                        {(hasLink || nom.thingSlug) && (
+                          <button 
+                            className="nominate-too-button"
+                            onClick={() =>
+                              nominateThisToo(
+                                nom.category,
+                                {
+                                  ...(hasLink && nom.url ? { postUrl: nom.url } : {}),
+                                  ...(nom.thingSlug ? { thingSlug: nom.thingSlug } : {}),
+                                },
+                                selectedCategory?.id
+                              )
+                            }
+                          >
+                            ⬆️ +1 <span className="nominate-text">Nominate too</span>
+                            {parseInt(nom.voteCount || '1', 10) > 1 && (
+                              <span className="nomination-vote-count"> ({nom.voteCount})</span>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -593,6 +623,7 @@ export const App = () => {
                         onClick={() => {
                           setSelectedCategory(award);
                           setHasSubmitted(false);
+                          setNominationTitle('');
                           setSubmitUrl('');
                           setNominationReason('');
                           setMessage('');
@@ -672,6 +703,7 @@ export const App = () => {
           <div className="nominations-grid">
             {nominations.map((nom, idx) => {
               const category = categories.find(c => c.id === nom.category);
+              const hasLink = Boolean(nom.url && nom.url.trim());
               return (
                 <div key={idx} className="nomination-card">
                   {nom.thumbnail && (
@@ -679,7 +711,7 @@ export const App = () => {
                       src={nom.thumbnail} 
                       alt={nom.title} 
                       className="nomination-thumbnail"
-                      onClick={() => window.open(nom.url, '_blank', 'noopener,noreferrer')}
+                      onClick={() => hasLink && window.open(nom.url!, '_blank', 'noopener,noreferrer')}
                     />
                   )}
                   <div className="nomination-content">
@@ -702,28 +734,44 @@ export const App = () => {
                       </div>
                     )}
                     <h4 
-                      className="nomination-title"
-                      onClick={() => window.open(nom.url, '_blank', 'noopener,noreferrer')}
+                      className={`nomination-title ${hasLink ? 'clickable' : ''}`}
+                      onClick={() => hasLink && window.open(nom.url!, '_blank', 'noopener,noreferrer')}
                     >
                       {truncateTitle(nom.title, 100)}
                     </h4>
                   </div>
                   <div className="nomination-actions">
-                    <a 
-                      href={nom.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="view-post-link"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      🔗 VIEW POST
-                    </a>
-                    <button 
-                      className="nominate-too-button"
-                      onClick={() => nominateThisToo(nom.url, nom.category)}
-                    >
-                      ⬆️ +1 <span className="nominate-text">Nominate too</span>
-                    </button>
+                    {hasLink && (
+                      <a 
+                        href={nom.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="view-post-link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        🔗 VIEW POST
+                      </a>
+                    )}
+                    {(hasLink || nom.thingSlug) && (
+                      <button 
+                        className="nominate-too-button"
+                        onClick={() =>
+                          nominateThisToo(
+                            nom.category,
+                            {
+                              ...(hasLink && nom.url ? { postUrl: nom.url } : {}),
+                              ...(nom.thingSlug ? { thingSlug: nom.thingSlug } : {}),
+                            }
+                            // no third arg: list view reloads all + stats
+                          )
+                        }
+                      >
+                        ⬆️ +1 <span className="nominate-text">Nominate too</span>
+                        {parseInt(nom.voteCount || '1', 10) > 1 && (
+                          <span className="nomination-vote-count"> ({nom.voteCount})</span>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -768,9 +816,6 @@ export const App = () => {
           ⚙️
         </button>
       )}
-      
-      {/* Debug: Log moderator status */}
-      {console.log('[CLIENT] Render - isModerator:', isModerator)}
 
       {/* Admin Panel Modal (moderators only) */}
       {isModerator && showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}

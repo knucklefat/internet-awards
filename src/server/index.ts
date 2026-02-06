@@ -60,6 +60,23 @@ function extractPostId(url: string): string | undefined {
   return undefined;
 }
 
+/** Max length for thing slug in Redis key (safe, readable) */
+const THING_SLUG_MAX_LENGTH = 80;
+
+/**
+ * Normalize title to a slug for link-free "thing" identity (Layer 2).
+ * Same normalized string => same nomination bucket for voteCount.
+ */
+function normalizeThingSlug(title: string): string {
+  const t = title.trim().toLowerCase().replace(/\s+/g, ' ');
+  const slug = t
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return slug.slice(0, THING_SLUG_MAX_LENGTH);
+}
+
 /**
  * Check if current user is a moderator
  */
@@ -213,20 +230,12 @@ router.get('/api/preview-post', async (req, res): Promise<void> => {
 });
 
 /**
- * Submit a nomination
+ * Submit a nomination (link optional; name/description required when no link).
+ * Layer 2: link-free uses normalized thing slug for identity and "Nominate too" dedupe.
  */
 router.post('/api/submit-nomination', async (req, res): Promise<void> => {
   try {
-    const { postUrl, category, reason } = req.body;
-
-    // Validation
-    if (!postUrl) {
-      res.status(400).json({
-        error: 'Missing postUrl parameter',
-        success: false,
-      });
-      return;
-    }
+    const { postUrl, category, reason, title: bodyTitle, thingSlug: bodyThingSlug } = req.body;
 
     if (!category) {
       res.status(400).json({
@@ -236,7 +245,6 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    // Verify category exists
     const categoryInfo = getCategoryById(category);
     if (!categoryInfo) {
       res.status(400).json({
@@ -246,57 +254,117 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    // Extract post ID from URL
-    const postId = extractPostId(postUrl);
-
-    if (!postId) {
-      res.status(400).json({
-        error: 'Invalid Reddit URL format',
-        success: false,
-      });
-      return;
-    }
-
-    console.log(`Fetching post data for ID: ${postId} in category: ${category}`);
-
-    // Fetch post data from Reddit
-    const post = await reddit.getPostById(`t3_${postId}`);
-
-    if (!post) {
-      res.status(404).json({
-        error: 'Post not found',
-        success: false,
-      });
-      return;
-    }
-
-    // Get nominator username from request context
     const nominatedBy = req.context?.username || 'anonymous';
+    const hasLink = typeof postUrl === 'string' && postUrl.trim().length > 0;
+    const title = typeof bodyTitle === 'string' ? bodyTitle.trim() : '';
+    const thingSlugParam = typeof bodyThingSlug === 'string' ? bodyThingSlug.trim() : '';
 
-    // Get thumbnail URL
-    let thumbnailUrl = '';
-    if (post.thumbnail && post.thumbnail.url) {
-      thumbnailUrl = post.thumbnail.url;
+    if (hasLink) {
+      // Link-based flow: validate URL, fetch post, use category:postId identity
+      const postId = extractPostId(postUrl);
+      if (!postId) {
+        res.status(400).json({
+          error: 'Invalid Reddit URL format',
+          success: false,
+        });
+        return;
+      }
+
+      const post = await reddit.getPostById(`t3_${postId}`);
+      if (!post) {
+        res.status(404).json({
+          error: 'Post not found',
+          success: false,
+        });
+        return;
+      }
+
+      let thumbnailUrl = '';
+      if (post.thumbnail && post.thumbnail.url) {
+        thumbnailUrl = post.thumbnail.url;
+      }
+
+      const memberKey = `${category}:${postId}`;
+      const nominationKey = `nomination:${memberKey}`;
+      const existing = await redis.hGetAll(nominationKey);
+
+      if (Object.keys(existing).length > 0) {
+        const currentVoteCount = parseInt(existing.voteCount || '1');
+        const newVoteCount = currentVoteCount + 1;
+        await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
+        res.json({
+          success: true,
+          isAdditionalVote: true,
+          voteCount: newVoteCount,
+          data: existing,
+        });
+        return;
+      }
+
+      const nomination: Record<string, string> = {
+        postId: post.id,
+        title: post.title,
+        author: post.authorName,
+        subreddit: post.subredditName,
+        karma: post.score.toString(),
+        url: postUrl,
+        category,
+        nominatedBy,
+        nominationReason: reason || '',
+        fetchedAt: Date.now().toString(),
+        thumbnail: thumbnailUrl,
+        permalink: post.permalink || '',
+        voteCount: '1',
+      };
+      await redis.zAdd('nominations:all', { member: memberKey, score: Date.now() });
+      await redis.hSet(nominationKey, nomination);
+      res.json({ success: true, isAdditionalVote: false, data: nomination });
+      return;
     }
 
-    // Redis key structure: nominations:all (sorted set), nomination:category:postId (hash)
-    const memberKey = `${category}:${postId}`;
-    const nominationKey = `nomination:${memberKey}`;
+    // Link-free "Nominate too": thingSlug provided, no new title -> increment existing
+    if (thingSlugParam.length > 0 && !title) {
+      const memberKey = `${category}:free:${thingSlugParam}`;
+      const nominationKey = `nomination:${memberKey}`;
+      const existing = await redis.hGetAll(nominationKey);
+      if (Object.keys(existing).length > 0) {
+        const currentVoteCount = parseInt(existing.voteCount || '1');
+        const newVoteCount = currentVoteCount + 1;
+        await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
+        res.json({
+          success: true,
+          isAdditionalVote: true,
+          voteCount: newVoteCount,
+          data: existing,
+        });
+        return;
+      }
+      res.status(404).json({
+        error: 'Nomination not found for this thing',
+        success: false,
+      });
+      return;
+    }
 
-    // Check if already nominated in this category
+    // Link-free new submission: require title, use category:free:slug identity
+    if (!title) {
+      res.status(400).json({
+        error: 'Nominee name or description is required when no link is provided',
+        success: false,
+      });
+      return;
+    }
+
+    const slug = normalizeThingSlug(title);
+    const slugForKey = slug.length > 0 ? slug : crypto.randomUUID();
+    const memberKey = `${category}:free:${slugForKey}`;
+    const nominationKey = `nomination:${memberKey}`;
     const existing = await redis.hGetAll(nominationKey);
+
     if (Object.keys(existing).length > 0) {
-      // This is a "+1" / "Nominate This Too" action
-      // Increment the vote count
       const currentVoteCount = parseInt(existing.voteCount || '1');
       const newVoteCount = currentVoteCount + 1;
-
-      await redis.hSet(nominationKey, {
-        voteCount: newVoteCount.toString(),
-      });
-
-      console.log(`Vote count incremented for ${nominationKey}: ${newVoteCount}`);
-
+      await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
       res.json({
         success: true,
         isAdditionalVote: true,
@@ -306,40 +374,27 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    // Create nomination object (all values must be strings for Redis hash)
     const nomination: Record<string, string> = {
-      postId: post.id,
-      title: post.title,
-      author: post.authorName,
-      subreddit: post.subredditName,
-      karma: post.score.toString(),
-      url: postUrl,
-      category: category,
-      nominatedBy: nominatedBy,
+      postId: '',
+      title,
+      author: '',
+      subreddit: '',
+      karma: '0',
+      url: '',
+      category,
+      nominatedBy,
       nominationReason: reason || '',
       fetchedAt: Date.now().toString(),
-      thumbnail: thumbnailUrl,
-      permalink: post.permalink || '',
-      voteCount: '1', // Initialize vote count
+      thumbnail: '',
+      permalink: '',
+      voteCount: '1',
+      thingSlug: slugForKey,
     };
 
-    // Store in Redis
-    // 1. Add to global sorted set for chronological ordering
-    await redis.zAdd('nominations:all', {
-      member: memberKey,
-      score: Date.now(),
-    });
-
-    // 2. Store nomination details in hash
+    await redis.zAdd('nominations:all', { member: memberKey, score: Date.now() });
     await redis.hSet(nominationKey, nomination);
-
-    console.log(`Nomination stored: ${nominationKey}`);
-
-    res.json({
-      success: true,
-      isAdditionalVote: false,
-      data: nomination,
-    });
+    console.log(`Link-free nomination stored: ${nominationKey} (thingSlug: ${slugForKey})`);
+    res.json({ success: true, isAdditionalVote: false, data: nomination });
   } catch (error) {
     console.error('Error submitting nomination:', error);
     res.status(500).json({
@@ -410,28 +465,21 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
         Object.keys(data).length > 0 &&
         data.nominatedBy &&
         data.category &&
-        data.postId &&
-        data.title
+        (data.title || data.postId)
       ) {
         nominators.add(data.nominatedBy);
-
-        // Count by category
         const category = data.category;
         nominationsByCategory[category] = (nominationsByCategory[category] || 0) + 1;
-
-        // Count by category group
         const categoryInfo = getCategoryById(category);
         if (categoryInfo) {
           const group = categoryInfo.categoryGroup;
           nominationsByCategoryGroup[group] = (nominationsByCategoryGroup[group] || 0) + 1;
         }
-
-        // Track post counts for top posts
-        const postId = data.postId;
-        if (!postCounts[postId]) {
-          postCounts[postId] = { title: data.title, count: 0 };
+        const id = (data.postId && data.postId.length > 0) ? data.postId : memberKey.member;
+        if (!postCounts[id]) {
+          postCounts[id] = { title: data.title || '(no title)', count: 0 };
         }
-        postCounts[postId].count++;
+        postCounts[id].count += parseInt(data.voteCount || '1', 10);
       }
     }
 
@@ -480,7 +528,7 @@ router.get('/api/export-csv', async (req, res): Promise<void> => {
       memberKeys = memberKeys.filter((key) => key.member.startsWith(`${category}:`));
     }
 
-    // Build CSV
+    // Build CSV (Layer 2: Thing Slug, Vote Count)
     const headers = [
       'Category',
       'Category Group',
@@ -491,6 +539,8 @@ router.get('/api/export-csv', async (req, res): Promise<void> => {
       'URL',
       'Nominated By',
       'Reason',
+      'Thing Slug',
+      'Vote Count',
       'Timestamp',
     ];
     let csv = headers.join(',') + '\n';
@@ -511,6 +561,8 @@ router.get('/api/export-csv', async (req, res): Promise<void> => {
           data.url || '',
           data.nominatedBy || '',
           `"${(data.nominationReason || '').replace(/"/g, '""')}"`,
+          data.thingSlug || '',
+          data.voteCount || '1',
           data.fetchedAt ? new Date(parseInt(data.fetchedAt)).toISOString() : '',
         ];
         csv += row.join(',') + '\n';

@@ -35,18 +35,25 @@ export interface EventConfig {
 }
 
 export interface Nomination {
-  postId: string;
+  /** Reddit post ID when nomination includes a link; empty for link-free submissions */
+  postId?: string;
   title: string;
-  author: string;
-  subreddit: string;
-  karma: string;
-  url: string;
-  category: string;       // Category ID
+  /** Reddit author when nomination includes a link */
+  author?: string;
+  subreddit?: string;
+  karma?: string;
+  /** Reddit post URL when provided (optional for link-free) */
+  url?: string;
+  category: string;
   nominatedBy: string;
   nominationReason?: string;
   fetchedAt: string;
   thumbnail?: string;
   permalink?: string;
+  /** Number of "nominate too" votes */
+  voteCount?: string;
+  /** Normalized slug for link-free dedupe and "nominate too" (Layer 2) */
+  thingSlug?: string;
 }
 
 export interface EventStats {
