@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Internet Awards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'Reddit Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        background: url('/default-splash.png?v=20260205') left center no-repeat;
+        background-size: cover;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        color: #000000;
+        animation: panBackground 30s linear forwards;
+      }
+
+      @keyframes panBackground {
+        from {
+          background-position: 0% center;
+        }
+        to {
+          background-position: 100% center;
+        }
+      }
+
+      .splash-container {
+        text-align: center;
+        max-width: 500px;
+        max-height: 850px;
+        width: 100%;
+        animation: fadeIn 0.6s ease-in;
+        position: relative;
+        z-index: 1;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .logo {
+        width: 126px;
+        height: 126px;
+        margin: 0 auto 24px;
+        animation: scaleIn 0.5s ease-out;
+      }
+
+      @keyframes scaleIn {
+        from {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0px 0px 0px #000)
+                drop-shadow(0px 2px 0px #000)
+                drop-shadow(0px -2px 0px #000)
+                drop-shadow(2px 0px 0px #000)
+                drop-shadow(-2px 0px 0px #000)
+                drop-shadow(2px 2px 0px #000)
+                drop-shadow(-2px -2px 0px #000)
+                drop-shadow(2px -2px 0px #000)
+                drop-shadow(-2px 2px 0px #000);
+      }
+
+      h1 {
+        font-size: 25pt;
+        font-weight: 700;
+        margin-bottom: 16px;
+        padding: 0 10px;
+        color: #ffffff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+
+      .description {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+        color: #d5d5d5;
+        opacity: 0.95;
+        line-height: 1.2;
+        font-weight: 200;
+      }
+
+      #rotating-word {
+        color: #ffffff;
+        font-weight: 600;
+        transition: opacity 0.7s ease;
+        display: inline-block;
+        width: 100px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        padding-bottom: 2px;
+      }
+
+      #launch-button {
+        background: #00E2B7;
+        color: #000000;
+        border: none;
+        border-radius: 24px;
+        padding: 12px 32px;
+        font-size: 1rem;
+        font-weight: 600 !important; /* override WebView/platform button defaults */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(0, 226, 183, 0.3);
+        text-transform: none;
+        letter-spacing: 0px;
+      }
+
+      #launch-button:hover {
+        background: #00ffc9;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 226, 183, 0.5);
+      }
+
+      #launch-button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(0, 226, 183, 0.3);
+      }
+
+      /* Mobile responsiveness */
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 20pt;
+          padding: 0 5px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 18pt;
+          padding: 0 5px;
+        }
+
+        .description {
+          font-size: 1rem;
+        }
+
+        #launch-button {
+          width: 100%;
+          padding: 12px 28px;
+        }
+
+        .logo {
+          width: 105px;
+          height: 105px;
+        }
+      }
+
+      @media (max-width: 380px) {
+        h1 {
+          font-size: 16pt;
+          padding: 0;
+        }
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="splash-container">
+      <div class="logo">
+        <img src="/default-icon.png?v=20260206" alt="The Internet Awards" />
+      </div>
+      <h1>Who will win the internet?</h1>
+      <p class="description">Submit nominations for your favorite <span id="rotating-word">Moment</span> of the year</p>
+      <button id="launch-button">Submit Nominee</button>
+    </div>
+
+    <script type="module" src="./splash.tsx"></script>
+  </body>
+</html>
