@@ -65,7 +65,7 @@ export const AWARDS: Award[] = [
     category: 'gaming-hobbies',
     name: 'S-Tier Game',
     emoji: '🎮',
-    description: 'Greatest, most enjoyable overall gaming experience',
+    description: 'Best overall gaming experience',
     resolutionGuidance: 'Game Title',
     bannerImage: 'best-game.gif',
     headerImage: '/images/award-headers/The Internet Awards_Award Banner_S-Tier Gaming Award_1200x300px@2x.png',
