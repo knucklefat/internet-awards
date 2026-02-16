@@ -53,14 +53,14 @@ The Internet Awards app allows Reddit users to:
 8. Faith in Humanity – Most wholesome or heartwarming piece of content *(Title or Description of a piece of content)*
 
 **🧠 Knowledge:**
-9. Deepest Learning – Deepest, most rewarding thread or thought-starter on the internet *(Title or Description of a subject)*
+9. Real Life Plot Twist – Most informative, rewarding thread or thought-provoker on the internet *(Title or Description of a subject)*
 10. Tech that Delivered – Tech innovation that lived up to the hype *(Title of a technology or name of company)*
 11. Mind-Blowing Discovery – Research, discovery, or finding in a field of science *(Title or description of subject)*
 12. Stream of Consciousness – Most Informative episode this past year *(Title of a podcast, stream, or streamer)*
 
 **💡 Lifestyle & Advice:**
 13. Life-Changing Life Hack – A life hack that actually changed everything *(Title or Description)*
-14. Pinned Destination – Travel destination worth every step of the trip *(Name of a physical location)*
+14. Detour Destination – Travel destination worth every step of the trip *(Name of a physical location)*
 15. The Look – Style trend that dominated the discourse *(Name of a style or brand)*
 16. Chef's Kiss – Most impressive culinary contribution *(Title or description of a recipe, dish, or drink)*
 
@@ -71,7 +71,7 @@ The Internet Awards app allows Reddit users to:
 20. Hottest Earworm – The song you still can't stop listening to *(Title of a song or musical artist)*
 
 **🌐 The Internet:**
-21. Community of the Moment – A community that brought the internet together *(Name of a subreddit or community)*
+21. Community Moment – A community that brought the internet together *(Name of a subreddit or community)*
 22. Positive Influence – A channel, stream, or podcast moment that had a positive effect *(Title or name of a podcast, podcaster or streamer)*
 23. Viral Trend – The most memorable trend that spread across the internet *(Name or Description of an internet trend)*
 24. Ask Me Anything – The AMA most worth reading *(Title or name or reddit post title)*

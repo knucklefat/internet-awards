@@ -60,6 +60,8 @@ export interface Nomination {
   url?: string;
   category: string;
   nominatedBy: string;
+  /** Reddit user id/username for profile link (admin); may be set when stored */
+  nominatedById?: string;
   nominationReason?: string;
   fetchedAt: string;
   thumbnail?: string;

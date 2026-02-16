@@ -295,6 +295,19 @@ export const App = () => {
     }, 5000);
   };
 
+  /** Open link in new tab (desktop) or copy with toast (mobile) so app stays open. */
+  const openOrCopyLink = (url: string) => {
+    const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
+    if (isMobile) {
+      navigator.clipboard.writeText(url).then(
+        () => setToast({ message: 'Link copied', type: 'success' }),
+        () => {}
+      );
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleDisabledButtonInteraction = () => {
     const atLimit = nominationCount != null && !nominationCount.unlimited && nominationCount.used >= nominationCount.limit;
     if (atLimit) {
@@ -797,7 +810,7 @@ export const App = () => {
                         <div className="nomination-card-content">
                           <h4
                             className={`nomination-title ${hasLink ? 'clickable' : ''}`}
-                            onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
+                            onClick={() => hasLink && linkUrl && openOrCopyLink(linkUrl)}
                           >
                             {truncateTitle(nom.title, 100)}
                           </h4>
@@ -811,7 +824,7 @@ export const App = () => {
                               src={nom.thumbnail}
                               alt=""
                               className="nomination-thumbnail"
-                              onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
+                              onClick={() => hasLink && linkUrl && openOrCopyLink(linkUrl)}
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -823,10 +836,10 @@ export const App = () => {
                             <div
                               className="nomination-thumbnail nomination-thumbnail-award-icon"
                               style={{ display: nom.thumbnail && nom.thumbnail.trim() ? 'none' : 'block' }}
-                              onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
+                              onClick={() => hasLink && linkUrl && openOrCopyLink(linkUrl)}
                               role={hasLink ? 'button' : undefined}
                               tabIndex={hasLink ? 0 : undefined}
-                              onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && navigateTo(linkUrl) : undefined}
+                              onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && openOrCopyLink(linkUrl) : undefined}
                             >
                               {award.iconPath ? (
                                 <img src={award.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
@@ -863,12 +876,9 @@ export const App = () => {
                             className="nominee-link-button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigator.clipboard.writeText(linkUrl).then(
-                                () => setToast({ message: 'Link copied', type: 'success' }),
-                                () => {}
-                              );
+                              openOrCopyLink(linkUrl);
                             }}
-                            aria-label="Copy link"
+                            aria-label={typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window) ? 'Copy link' : 'Open in new tab'}
                           >
                             <img src="/images/icons/nominee/nominee-link-icon.png" alt="" className="nominee-link-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                             <span className="nominee-link-icon-fallback" style={{ display: 'none' }} aria-hidden>🔗</span>
@@ -1019,7 +1029,7 @@ export const App = () => {
                     <div className="nomination-card-content">
                       <h4
                         className={`nomination-title ${hasLink ? 'clickable' : ''}`}
-                        onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
+                        onClick={() => hasLink && linkUrl && openOrCopyLink(linkUrl)}
                       >
                         {truncateTitle(nom.title, 100)}
                       </h4>
@@ -1033,7 +1043,7 @@ export const App = () => {
                           src={nom.thumbnail}
                           alt=""
                           className="nomination-thumbnail"
-                          onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
+                          onClick={() => hasLink && linkUrl && openOrCopyLink(linkUrl)}
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -1045,10 +1055,10 @@ export const App = () => {
                         <div
                           className="nomination-thumbnail nomination-thumbnail-award-icon"
                           style={{ display: nom.thumbnail && nom.thumbnail.trim() ? 'none' : 'block' }}
-                          onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
+                          onClick={() => hasLink && linkUrl && openOrCopyLink(linkUrl)}
                           role={hasLink ? 'button' : undefined}
                           tabIndex={hasLink ? 0 : undefined}
-                          onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && navigateTo(linkUrl) : undefined}
+                          onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && openOrCopyLink(linkUrl) : undefined}
                         >
                           {award.iconPath ? (
                             <img src={award.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
@@ -1084,12 +1094,9 @@ export const App = () => {
                         className="nominee-link-button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigator.clipboard.writeText(linkUrl).then(
-                            () => setToast({ message: 'Link copied', type: 'success' }),
-                            () => {}
-                          );
+                          openOrCopyLink(linkUrl);
                         }}
-                        aria-label="Copy link"
+                        aria-label={typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window) ? 'Copy link' : 'Open in new tab'}
                       >
                         <img src="/images/icons/nominee/nominee-link-icon.png" alt="" className="nominee-link-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                         <span className="nominee-link-icon-fallback" style={{ display: 'none' }} aria-hidden>🔗</span>

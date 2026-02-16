@@ -1,6 +1,6 @@
-# fetchy-mcfetch
+# Fetch
 
-**A Reddit Devvit app for community-driven nominations.** Run multi-category “nominate and second” flows (awards, polls, crowdsourcing) inside a subreddit. Configure categories, rate limits, and branding; moderate via an in-app admin panel and CSV export.
+**A Reddit Devvit app for fetching Reddit content and returning it to a single sub.** Fetch allows members of your community to gather Reddit content by inputting a Name, Description, or reddit url. Currently powering Reddit Run multi-category “nominate and second” flows (awards, polls, crowdsourcing) inside a subreddit. Configure categories, rate limits, and branding; moderate via an in-app admin panel and CSV export.
 
 This repo can be forked and customized for your own event (awards, “best of,” community picks, etc.). It is also used as **The Internet Awards** nomination app; that usage is documented in [INTERNET_AWARDS_USAGE.md](INTERNET_AWARDS_USAGE.md).
 
@@ -9,7 +9,7 @@ This repo can be forked and customized for your own event (awards, “best of,�
 ## What it is
 
 - **Platform:** [Reddit Devvit](https://developers.reddit.com/) (WebView client + serverless Node server + Redis).
-- **Purpose:** Let subreddit members submit **nominations** into multiple **categories**, optionally attach a **Reddit post** (or link-free text), and **second** (support) existing nominations. Moderators manage content and export data.
+- **Purpose:** Let subreddit members fetch and submit **nominations** into multiple **categories**, optionally attach a **Reddit post** (or link-free text), and **second** (support) existing nominations. Moderators manage content and export data.
 - **Entry:** Splash screen → “Submit” opens the main WebView: category picker → award/category → submit form → list of other nominees with second buttons.
 
 All commands below are run from the **`fetchy-mcfetch/`** directory.

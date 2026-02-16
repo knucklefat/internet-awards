@@ -17,14 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Rotating word animation
   const words = [
     'Moment',
-    'Meme',
+    'Masterpiece',
     'Plot Twist',
     'Gut Buster',
-    'Creation',
-    'Rabbit Hole',
+    'Ear Worm',
+    'Plot Twist',
     'Technology',
     'Life Hack',
-    'Highlight',
+    'Hot Take',
     'Tutorial'
   ];
   let currentIndex = 0;

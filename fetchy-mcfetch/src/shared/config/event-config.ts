@@ -26,7 +26,7 @@ export const CATEGORIES: Category[] = [
   {
     id: 'knowledge',
     name: 'Knowledge',
-    tagline: 'Blessed be the Educators',
+    tagline: 'THe More You Know...',
     description: 'In celebration of the thinkers, the teachers, and the everyday experts that turned curiosity into connection.',
     emoji: '🧠',
     accentColor: '#3282b8',
@@ -179,7 +179,7 @@ export const AWARDS: Award[] = [
   {
     id: 'best-plot-twist',
     category: 'knowledge',
-    name: 'Most Teachable Moment',
+    name: 'Real Life Plot Twist',
     emoji: '🤯',
     description: 'Most informative, rewarding thread or thought-provoker on the internet',
     resolutionGuidance: 'Title or Description of a subject',
@@ -229,7 +229,7 @@ export const AWARDS: Award[] = [
     bannerImage: 'internet-awards.gif',
     headerImage: '/images/award-headers/The Internet Awards_Award Banner_Stream of Consciousness Award_1200x300px@2x.png',
     headerTextAlign: 'left',
-    iconPath: '/images/icons/awards/Stream of Consciousness Award_80x80px@1x.png',
+    iconPath: '/images/icons/awards/Stream-of-Consciousness-Award_80x80px@1x.png',
     cardColor: 'linear-gradient(135deg, #4776e6 0%, #8e54e9 100%)'
   },
 
@@ -251,7 +251,7 @@ export const AWARDS: Award[] = [
   {
     id: 'destination-having-moment',
     category: 'lifestyle-advice',
-    name: 'Pinned Destination',
+    name: 'Detour Destination',
     emoji: '✈️',
     description: 'Travel destination worth every step of the trip',
     resolutionGuidance: 'Name of a physical location',
@@ -353,7 +353,7 @@ export const AWARDS: Award[] = [
   {
     id: 'community-moment',
     category: 'the-internet',
-    name: 'Community Unity',
+    name: 'Community Moment',
     emoji: '🤝',
     description: 'A community that brought the internet together',
     resolutionGuidance: 'Name of a subreddit or community',

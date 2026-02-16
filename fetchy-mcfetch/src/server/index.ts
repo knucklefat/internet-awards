@@ -630,6 +630,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
           };
           await redis.zAdd('nominations:all', { member: memberKey, score: Date.now() });
           await redis.hSet(nominationKey, nomination);
+          await redis.hSet(HIDDEN_NOMINATIONS_KEY, { [memberKey]: '1' }); // New nominees default hidden (T&S)
           res.json({ success: true, isAdditionalVote: false, data: nomination });
           return;
           }
@@ -703,6 +704,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       };
       await redis.zAdd('nominations:all', { member: memberKey, score: Date.now() });
       await redis.hSet(nominationKey, nomination);
+      await redis.hSet(HIDDEN_NOMINATIONS_KEY, { [memberKey]: '1' }); // New nominees default hidden (T&S)
       res.json({ success: true, isAdditionalVote: false, data: nomination });
       return;
     }
@@ -798,6 +800,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
 
     await redis.zAdd('nominations:all', { member: memberKey, score: Date.now() });
     await redis.hSet(nominationKey, nomination);
+    await redis.hSet(HIDDEN_NOMINATIONS_KEY, { [memberKey]: '1' }); // New nominees default hidden (T&S)
     console.log(`Link-free nomination stored: ${nominationKey} (thingSlug: ${slugForKey})`);
     res.json({ success: true, isAdditionalVote: false, data: nomination });
   } catch (error) {

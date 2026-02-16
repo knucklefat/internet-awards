@@ -6,8 +6,8 @@ type Props = {
 };
 
 type AdminView = 'nominations' | 'categories' | 'awards' | 'nominators';
-type NominationSort = 'newest' | 'most_seconded' | 'flagged';
-type NominatorSort = 'active' | 'shadow_banned';
+type NominationSort = 'newest' | 'most_seconded' | 'flagged' | 'visible' | 'focused';
+type NominatorSort = 'active' | 'shadow_banned' | 'focused';
 
 type NominatorRow = { username: string; count: number; shadowBanned: boolean };
 
@@ -28,6 +28,7 @@ export const AdminPanel = ({ onClose }: Props) => {
   const [hideUnhideLoading, setHideUnhideLoading] = useState<string | null>(null);
   const [unflagLoading, setUnflagLoading] = useState<string | null>(null);
   const [banUnbanLoading, setBanUnbanLoading] = useState<string | null>(null);
+  const [focusedNominatorUsername, setFocusedNominatorUsername] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStats();
@@ -42,9 +43,13 @@ export const AdminPanel = ({ onClose }: Props) => {
 
   useEffect(() => {
     if (activeView === 'nominators') {
-      fetchNominators(sortNominators);
+      if (sortNominators === 'focused' && focusedNominatorUsername) {
+        fetchNominatorsFocused(focusedNominatorUsername);
+      } else {
+        fetchNominators(sortNominators);
+      }
     }
-  }, [activeView, sortNominators]);
+  }, [activeView, sortNominators, focusedNominatorUsername]);
 
   useEffect(() => {
     if (activeView === 'categories' && eventConfig?.categories?.length) {
@@ -94,11 +99,51 @@ export const AdminPanel = ({ onClose }: Props) => {
 
   const fetchNominators = async (sort: NominatorSort) => {
     try {
+      if (sort === 'focused') return; // handled by fetchNominatorsFocused
       const res = await fetch(`/api/admin/nominators?sort=${sort}`);
       const result = await res.json();
       if (result.success) setNominators(result.data || []);
     } catch (e) {
       console.error('Error fetching nominators:', e);
+    }
+  };
+
+  const fetchNominatorsFocused = async (username: string) => {
+    try {
+      const [activeRes, bannedRes] = await Promise.all([
+        fetch('/api/admin/nominators?sort=active'),
+        fetch('/api/admin/nominators?sort=shadow_banned'),
+      ]);
+      const activeData = await activeRes.json();
+      const bannedData = await bannedRes.json();
+      const active = activeData.success ? activeData.data || [] : [];
+      const banned = bannedData.success ? bannedData.data || [] : [];
+      const merged = [...active, ...banned];
+      const filtered = merged.filter((r: NominatorRow) => r.username === username);
+      setNominators(filtered);
+    } catch (e) {
+      console.error('Error fetching focused nominator:', e);
+      setNominators([]);
+    }
+  };
+
+  const goToSubmitorFocused = (nominatedBy: string) => {
+    setFocusedNominatorUsername(nominatedBy);
+    setSortNominators('focused');
+    setActiveView('nominators');
+  };
+
+  const isMobile = () => typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
+
+  const handlePostLinkClick = (url: string) => {
+    if (isMobile()) {
+      navigator.clipboard.writeText(url).then(
+        () => setExportMessage('Link copied'),
+        () => {}
+      );
+      setTimeout(() => setExportMessage(''), 2000);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -185,6 +230,25 @@ export const AdminPanel = ({ onClose }: Props) => {
     }
   };
 
+  const handleFlag = async (memberKey: string) => {
+    if (!memberKey || unflagLoading) return;
+    setUnflagLoading(memberKey);
+    try {
+      const res = await fetch('/api/flag-nomination', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberKey }),
+      });
+      const result = await res.json();
+      if (result.success) setNominations((prev) => prev.map((n) => (n.memberKey === memberKey ? { ...n, flagged: true } : n)));
+      else alert(result.error || 'Failed to flag');
+    } catch (e) {
+      alert('Failed to flag');
+    } finally {
+      setUnflagLoading(null);
+    }
+  };
+
   const handleShadowBan = async (username: string) => {
     if (!username || banUnbanLoading) return;
     setBanUnbanLoading(username);
@@ -252,6 +316,12 @@ export const AdminPanel = ({ onClose }: Props) => {
     let list = [...nominations];
     if (sortNominations === 'flagged') {
       list = list.filter((n: any) => n.flagged);
+    }
+    if (sortNominations === 'visible') {
+      list = list.filter((n: any) => !n.hidden);
+    }
+    if (sortNominations === 'focused') {
+      list.sort((a, b) => (a.nominatedById || a.nominatedBy || '').localeCompare(b.nominatedById || b.nominatedBy || ''));
     }
     if (sortNominations === 'most_seconded' || sortNominations === 'flagged') {
       list.sort((a, b) => parseInt(b.voteCount || '0', 10) - parseInt(a.voteCount || '0', 10));
@@ -368,9 +438,11 @@ export const AdminPanel = ({ onClose }: Props) => {
                     onChange={(e) => setSortNominations(e.target.value as NominationSort)}
                     aria-label="Sort nominees"
                   >
-                    <option value="most_seconded">SECONDED</option>
+                    <option value="most_seconded">Popular</option>
                     <option value="newest">Newest</option>
+                    <option value="visible">Visible</option>
                     <option value="flagged">Flagged</option>
+                    <option value="focused">Focused</option>
                   </select>
                 </div>
               </div>
@@ -382,6 +454,9 @@ export const AdminPanel = ({ onClose }: Props) => {
                   sortedNominations.map((nom, idx) => {
                     const category = eventConfig?.categories?.find((c: any) => c.id === nom.category);
                     const secondLine = getSecondLine(nom);
+                    const postUrl = (nom.url && nom.url.trim()) || (nom.postId && nom.permalink ? `https://www.reddit.com${nom.permalink}` : undefined) || undefined;
+                    const hasPostLink = Boolean(postUrl);
+                    const submitterDisplay = (nom.nominatedBy || '').trim();
                     return (
                       <div key={nom.memberKey ?? `${nom.category}-${idx}`} className="admin-nominee-card">
                         <div className="admin-nominee-thumb">
@@ -396,15 +471,32 @@ export const AdminPanel = ({ onClose }: Props) => {
                         <div className="admin-nominee-body">
                           <div className="admin-nominee-title">{nom.title}</div>
                           {secondLine && <div className="admin-nominee-sub">{secondLine}</div>}
-                          {nom.hidden && <div className="admin-nominee-sub admin-hidden-tag">Hidden from public</div>}
+                          {nom.hidden && <div className="admin-nominee-sub admin-hidden-tag">Hidden</div>}
                           {nom.flagged && <div className="admin-nominee-sub admin-flagged-tag">Flagged</div>}
                         </div>
                         <div className="admin-nominee-action">
-                          {nom.flagged && (
-                            <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnflag(nom.memberKey)} disabled={unflagLoading === nom.memberKey} title="Unflag (show in public again)">
-                              Unflag
+                          {hasPostLink && (
+                            <button type="button" className="admin-link-btn" onClick={() => postUrl && handlePostLinkClick(postUrl)} title={isMobile() ? 'Copy link' : 'Open post'}>
+                              <img src="/images/icons/nominee/nominee-link-icon.png" alt="" className="admin-link-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
+                              <span className="admin-link-icon-fallback" style={{ display: 'none' }} aria-hidden>🔗</span>
                             </button>
                           )}
+                          {submitterDisplay && (
+                            <button type="button" className="admin-link-btn" onClick={() => goToSubmitorFocused(submitterDisplay)} title={`Submitor: u/${submitterDisplay}`}>
+                              <span className="admin-user-icon" aria-hidden>u/</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={`admin-flag-toggle ${nom.flagged ? 'flagged' : ''}`}
+                            onClick={() => (nom.flagged ? handleUnflag(nom.memberKey) : handleFlag(nom.memberKey))}
+                            disabled={unflagLoading === nom.memberKey}
+                            title={nom.flagged ? 'Unflag' : 'Flag'}
+                            aria-label={nom.flagged ? 'Unflag' : 'Flag'}
+                          >
+                            <img src={nom.flagged ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="admin-flag-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
+                            <span className="admin-flag-icon-fallback" style={{ display: 'none' }} aria-hidden>🚩</span>
+                          </button>
                           {nom.hidden ? (
                             <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnhide(nom.memberKey)} disabled={hideUnhideLoading === nom.memberKey} title="Show">
                               <svg className="admin-hide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -504,7 +596,7 @@ export const AdminPanel = ({ onClose }: Props) => {
             <div className="admin-view-section">
               <div className="admin-view-toolbar">
                 <div className="admin-toolbar-title-with-dropdown">
-                  <span className="admin-view-title admin-view-title-inline">AWARD:</span>
+                  <span className="admin-view-title admin-view-title-inline admin-award-label-mobile-hide">AWARD:</span>
                   <select
                     className="admin-dropdown admin-dropdown-inline"
                     value={selectedAwardId ?? ''}
@@ -522,9 +614,11 @@ export const AdminPanel = ({ onClose }: Props) => {
                     onChange={(e) => setSortNominations(e.target.value as NominationSort)}
                     aria-label="Sort nominees"
                   >
-                    <option value="most_seconded">SECONDED</option>
+                    <option value="most_seconded">Popular</option>
                     <option value="newest">Newest</option>
+                    <option value="visible">Visible</option>
                     <option value="flagged">Flagged</option>
+                    <option value="focused">Focused</option>
                   </select>
                 </div>
               </div>
@@ -538,6 +632,9 @@ export const AdminPanel = ({ onClose }: Props) => {
                     ) : (
                       awardNoms.map((nom: any, idx: number) => {
                         const secondLine = getSecondLine(nom);
+                        const postUrl = (nom.url && nom.url.trim()) || (nom.postId && nom.permalink ? `https://www.reddit.com${nom.permalink}` : undefined) || undefined;
+                        const hasPostLink = Boolean(postUrl);
+                        const submitterDisplay = (nom.nominatedBy || '').trim();
                         return (
                           <div key={nom.memberKey ?? `${selectedAwardId}-${idx}`} className="admin-nominee-card">
                             <div className="admin-nominee-thumb">
@@ -546,15 +643,32 @@ export const AdminPanel = ({ onClose }: Props) => {
                             <div className="admin-nominee-body">
                               <div className="admin-nominee-title">{nom.title}</div>
                               {secondLine && <div className="admin-nominee-sub">{secondLine}</div>}
-                              {nom.hidden && <div className="admin-nominee-sub admin-hidden-tag">Hidden from public</div>}
+                              {nom.hidden && <div className="admin-nominee-sub admin-hidden-tag">Hidden</div>}
                               {nom.flagged && <div className="admin-nominee-sub admin-flagged-tag">Flagged</div>}
                             </div>
                             <div className="admin-nominee-action">
-                              {nom.flagged && (
-                                <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnflag(nom.memberKey)} disabled={unflagLoading === nom.memberKey} title="Unflag (show in public again)">
-                                  Unflag
+                              {hasPostLink && (
+                                <button type="button" className="admin-link-btn" onClick={() => postUrl && handlePostLinkClick(postUrl)} title={isMobile() ? 'Copy link' : 'Open post'}>
+                                  <img src="/images/icons/nominee/nominee-link-icon.png" alt="" className="admin-link-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
+                                  <span className="admin-link-icon-fallback" style={{ display: 'none' }} aria-hidden>🔗</span>
                                 </button>
                               )}
+                              {submitterDisplay && (
+                                <button type="button" className="admin-link-btn" onClick={() => goToSubmitorFocused(submitterDisplay)} title={`Submitor: u/${submitterDisplay}`}>
+                                  <span className="admin-user-icon" aria-hidden>u/</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className={`admin-flag-toggle ${nom.flagged ? 'flagged' : ''}`}
+                                onClick={() => (nom.flagged ? handleUnflag(nom.memberKey) : handleFlag(nom.memberKey))}
+                                disabled={unflagLoading === nom.memberKey}
+                                title={nom.flagged ? 'Unflag' : 'Flag'}
+                                aria-label={nom.flagged ? 'Unflag' : 'Flag'}
+                              >
+                                <img src={nom.flagged ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="admin-flag-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
+                                <span className="admin-flag-icon-fallback" style={{ display: 'none' }} aria-hidden>🚩</span>
+                              </button>
                               {nom.hidden ? (
                                 <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnhide(nom.memberKey)} disabled={hideUnhideLoading === nom.memberKey} title="Show">
                                   <svg className="admin-hide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -579,22 +693,34 @@ export const AdminPanel = ({ onClose }: Props) => {
           {activeView === 'nominators' && (
             <div className="admin-view-section">
               <div className="admin-view-toolbar">
-                <span className="admin-view-title">NOMINATORS</span>
+                <span className="admin-view-title">
+                  {sortNominators === 'focused' && focusedNominatorUsername ? `SUBMITORS: ${focusedNominatorUsername}` : 'SUBMITORS'}
+                </span>
                 <div className="admin-toolbar-right">
                   <select
                     className="admin-sort-dropdown"
                     value={sortNominators}
-                    onChange={(e) => setSortNominators(e.target.value as NominatorSort)}
+                    onChange={(e) => {
+                      const v = e.target.value as NominatorSort;
+                      setSortNominators(v);
+                      if (v !== 'focused') setFocusedNominatorUsername(null);
+                    }}
                     aria-label="Filter nominators"
                   >
                     <option value="active">Active</option>
                     <option value="shadow_banned">Banned</option>
+                    <option value="focused">Focused</option>
                   </select>
                 </div>
               </div>
+              {exportMessage && <div className="admin-export-msg">{exportMessage}</div>}
               <div className="admin-nominators-list">
                 {nominators.length === 0 ? (
-                  <div className="admin-empty">No nominators in this list.</div>
+                  <div className="admin-empty">
+                    {sortNominators === 'focused' && focusedNominatorUsername
+                      ? `No nominator "${focusedNominatorUsername}" in active or banned list.`
+                      : 'No nominators in this list.'}
+                  </div>
                 ) : (
                   nominators.map((row) => (
                     <div key={row.username} className="admin-nominator-row">

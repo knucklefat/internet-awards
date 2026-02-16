@@ -148,19 +148,19 @@ From `event-config.ts` – 24 awards, finalized names and resolution guidance:
 | outstanding-aww | Outstanding Aww |
 | meme-won-internet | Top Shelf Meme |
 | wholesomest-moment | Faith in Humanity |
-| best-plot-twist | Deepest Learning |
+| best-plot-twist | Real Life Plot Twist |
 | most-innovative-tech | Tech that Delivered |
 | breakthrough-scientific-discovery | Mind-Blowing Discovery |
 | most-informative-episode | Stream of Consciousness |
 | life-hack-changed-everything | Life-Changing Life Hack |
-| destination-having-moment | Pinned Destination |
+| destination-having-moment | Detour Destination |
 | best-fashion-style-trend | The Look |
 | best-original-dish | Chef's Kiss |
 | best-show-episode | Redemption Arc |
 | absolute-cinema-moment | Absolute Cinema |
 | best-sports-moment | Peak Sports |
 | hottest-earworm | Hottest Earworm |
-| community-moment | Community of the Moment |
+| community-moment | Community Moment |
 | best-channel-stream-podcast | Positive Influence |
 | best-internet-trend | Viral Trend |
 | most-quotable-ama | Ask Me Anything |
