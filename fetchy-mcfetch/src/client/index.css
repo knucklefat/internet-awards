@@ -232,10 +232,10 @@ body {
 
 .main-subtitle {
   text-align: center;
-  font-weight: 700;
+  font-weight: 200;
   color: #f5f3f3;
   margin-bottom: 6px;
-  font-size: 1rem;  
+  font-size: 1.1rem;  
   padding: 16px 0 6px 0;
 
 
@@ -314,7 +314,7 @@ body {
   margin-left: calc(50% - 50vw);
   box-sizing: border-box;
   border-top: 3px double #6b7280;
-  border-bottom: 3px double #6b7280;
+  border-bottom: 3px double rgba(107, 114, 128, 0.7);
   padding: 10px 16px;
   margin-top: 16px;
   margin-bottom: 12px;
