@@ -8,7 +8,7 @@
 
 - **Name:** fetchy-mcfetch (The Internet Awards – Nominations).
 - **Purpose:** Reddit Devvit app for **Phase 1 only**: users nominate posts (or link-free entries) to award categories; mods manage the event, export CSV, and create nomination posts from the mod menu. Voting is a separate app (ballot-box).
-- **Status:** Production-ready (v0.0.88 per README). Dev sub: **r/internetawards_dev**. Single event, 25 awards in 6 category groups.
+- **Status:** Production-ready (v0.0.88 per README). Dev sub: **r/internetawards_dev**. Single event, 24 awards in 6 category groups.
 
 ---
 

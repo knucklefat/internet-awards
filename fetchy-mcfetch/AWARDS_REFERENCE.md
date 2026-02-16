@@ -136,34 +136,33 @@ If you **add a new award** (new id in event-config), add a new key/value in `THI
 
 ## 6. Quick map: category id → display name (current)
 
-From `event-config.ts` as of this doc:
+From `event-config.ts` – 24 awards, finalized names and resolution guidance:
 
 | id | name |
 |----|------|
 | best-gaming-moment | S-Tier Game |
 | holy-grail-collectible | Holy Grail |
-| most-quotable-quote-fiction | Most Quotable |
 | best-artistic-creation | Artistic Masterpiece |
-| funniest-original-content | Comedic Gold |
+| most-quotable-quote-fiction | Most Quotable |
+| funniest-original-content | Comedy Gold |
 | outstanding-aww | Outstanding Aww |
 | meme-won-internet | Top Shelf Meme |
-| wholesomest-moment | Faith in Humanity Restorer |
+| wholesomest-moment | Faith in Humanity |
 | best-plot-twist | Deepest Learning |
 | most-innovative-tech | Tech that Delivered |
 | breakthrough-scientific-discovery | Mind-Blowing Discovery |
 | most-informative-episode | Stream of Consciousness |
 | life-hack-changed-everything | Life-Changing Life Hack |
-| destination-having-moment | Detour Destination |
+| destination-having-moment | Pinned Destination |
 | best-fashion-style-trend | The Look |
 | best-original-dish | Chef's Kiss |
 | best-show-episode | Redemption Arc |
 | absolute-cinema-moment | Absolute Cinema |
 | best-sports-moment | Peak Sports |
 | hottest-earworm | Hottest Earworm |
-| community-moment | Community Moment |
-| most-rewarding-rabbit-hole | The Rabbit Hole |
+| community-moment | Community of the Moment |
 | best-channel-stream-podcast | Positive Influence |
 | best-internet-trend | Viral Trend |
 | most-quotable-ama | Ask Me Anything |
 
-**Note:** "The Rabbit Hole" has no `headerImage` in config; it has no banner in `award-headers/`. All other 24 awards have a header image and an icon.
+Each award has `resolutionGuidance` in event-config (used by resolve script). All 24 have header image and icon.

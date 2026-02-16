@@ -26,36 +26,35 @@ const THING_SLUG_MAX_LENGTH = 80;
 const LLM_DELAY_MS = 350;
 
 /**
- * Per-award constraint: what type of "thing" the LLM should output.
+ * Per-award constraint: what type of "thing" the LLM should output (resolution guidance).
  * Key = Category id (from CSV). Value = short instruction so the model returns
- * the right kind of label (e.g. place for Detour Destination, not a person).
+ * the right kind of label. Aligned with event-config resolutionGuidance.
  */
 const THING_TYPE_BY_CATEGORY = {
-  'best-gaming-moment': 'a video game: title on any digital platform. Not a person.',
-  'holy-grail-collectible': 'the collectible item or product name. Not a person.',
-  'most-quotable-quote-fiction': 'the work of fiction (book, story, series). Not a person unless they are the author.',
-  'best-artistic-creation': 'the artistic work or creation (art, design, craft). Not a person unless they are the artist.',
-  'funniest-original-content': 'the comedy content (skit, clip, joke, meme). Can be creator name if the nomination is "that person\'s content".',
-  'outstanding-aww': 'the animal or animal content (species, pet name, or viral animal).',
-  'meme-won-internet': 'the meme, viral image, or phrase. Not a person.',
-  'wholesomest-moment': 'the moment, act, or story (event or thing). Can be a short description.',
-  'best-plot-twist': 'a factual subject or event. Not a person.',
-  'most-innovative-tech': 'the tech product, innovation, or device. Not a person or company unless the nomination is for that product.',
-  'breakthrough-scientific-discovery': 'the scientific discovery, finding, or research (short name). Not a person.',
-  'most-informative-episode': 'an episode from a streamer or podcaster (show name, episode title, or channel). Not a person unless they are the show.',
-  'life-hack-changed-everything': 'the life hack (tip, method, or product name). Not a person.',
-  'destination-having-moment': 'a PLACE only: travel destination, city, region, country, or landmark. Never a person. If the nomination mentions a person, output the place they are associated with (e.g. New York City not the mayor).',
-  'best-fashion-style-trend': 'the fashion, style, or beauty trend (look name or trend). Not a person.',
-  'best-original-dish': 'the dish, recipe, or culinary creation. Not a person or restaurant unless it\'s the dish name.',
-  'best-show-episode': 'the TV episode or series (show name, or "Show Name: Episode"). Not a person.',
-  'absolute-cinema-moment': 'the film or movie title. Not a person.',
-  'best-sports-moment': 'the sports moment or event (game, play, tournament). Can include athlete name if the moment is "that play".',
-  'hottest-earworm': 'the song or musical work (title and/or artist). Not a person unless they are the artist.',
-  'community-moment': 'the moment or event that brought community together (short description). Not a person.',
-  'most-rewarding-rabbit-hole': 'the thread, topic, or rabbit hole subject (short name). Not a person.',
-  'best-channel-stream-podcast': 'the channel, stream, or podcast (show or creator name).',
-  'best-internet-trend': 'the trend name or short description. Not a person.',
-  'most-quotable-ama': 'the AMA subject (person or topic of the AMA, e.g. "Neil deGrasse Tyson AMA").',
+  'best-gaming-moment': 'Game Title. A video game on any digital platform.',
+  'holy-grail-collectible': 'Title of Something that people collect.',
+  'best-artistic-creation': 'Link or image of a Piece of art. The artistic work or creation.',
+  'most-quotable-quote-fiction': 'Literary Title or Author. Work of fiction.',
+  'funniest-original-content': 'Title of a published comic or Comedian.',
+  'outstanding-aww': 'Specific animal.',
+  'meme-won-internet': 'Single Meme. The meme or viral image.',
+  'wholesomest-moment': 'Title or Description of a piece of content. Wholesome or heartwarming content.',
+  'best-plot-twist': 'Title or Description of a subject. Thread or thought-starter.',
+  'most-innovative-tech': 'Title of a technology or name of company.',
+  'breakthrough-scientific-discovery': 'Title or description of subject. Research, discovery, or finding in science.',
+  'most-informative-episode': 'Title of a podcast, stream, or streamer.',
+  'life-hack-changed-everything': 'Title or Description. The life hack.',
+  'destination-having-moment': 'Name of a physical location. Travel destination only. Never a person.',
+  'best-fashion-style-trend': 'Name of a style or brand.',
+  'best-original-dish': 'Title or description of a recipe, dish, or drink.',
+  'best-show-episode': 'Title of a show and/or episode of a show.',
+  'absolute-cinema-moment': 'Title of a Movie.',
+  'best-sports-moment': 'Title or description of an athletic team, player or game.',
+  'hottest-earworm': 'Title of a song or musical artist.',
+  'community-moment': 'Name of a subreddit or community.',
+  'best-channel-stream-podcast': 'Title or name of a podcast, podcaster or streamer.',
+  'best-internet-trend': 'Name or Description of an internet trend.',
+  'most-quotable-ama': 'Title or name or reddit post title. The AMA subject.',
 };
 
 function getThingConstraint(categoryId) {

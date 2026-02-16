@@ -48,6 +48,9 @@ export const App = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [toast, setToast] = useState<{message: string; type: 'success'|'error'} | null>(null);
+  const [toastLeaving, setToastLeaving] = useState(false);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [justSecondedKey, setJustSecondedKey] = useState<string | null>(null);
   const [postPreview, setPostPreview] = useState<{title: string; thumbnail: string | null} | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -55,6 +58,9 @@ export const App = () => {
   const [nominationCount, setNominationCount] = useState<{ used: number; limit: number } | null>(null);
   const [showEntryForm, setShowEntryForm] = useState(true);
   const [nomineesStartIndex, setNomineesStartIndex] = useState(0);
+
+  /** When true, show "Other Nominees" on submit screen. Option B (global): once user has submitted any nomination in this event. For Option A (per-award), replace with: hasSubmitted || hasNominatedForCategory and set hasNominatedForCategory from GET /api/user/has-nominated?category=... */
+  const showNomineeList = hasSubmitted || (nominationCount != null && nominationCount.used > 0);
 
   // Load event configuration and check moderator status on mount
   useEffect(() => {
@@ -78,6 +84,13 @@ export const App = () => {
   useEffect(() => {
     if (view === 'submit' && selectedCategory) loadNominationCount();
   }, [view, selectedCategory?.id]);
+
+  // When nominee list is visible on submit view, ensure we have nominations for this category (e.g. user returned to award)
+  useEffect(() => {
+    if (view === 'submit' && selectedCategory?.id && showNomineeList) {
+      loadNominations(selectedCategory.id);
+    }
+  }, [view, selectedCategory?.id, showNomineeList]);
 
   const wasLoadingNominations = useRef(false);
   useEffect(() => {
@@ -213,17 +226,26 @@ export const App = () => {
       if (submitUrl.includes('reddit.com') || submitUrl.includes('redd.it')) {
         try {
           setPreviewLoading(true);
+          setPostPreview(null);
           const response = await fetch(`/api/preview-post?url=${encodeURIComponent(submitUrl)}`);
           const result = await response.json();
-          
+
           if (result.success) {
             setPostPreview(result.data);
+          } else {
+            setPostPreview({
+              title: result?.error ?? 'Preview unavailable',
+              thumbnail: null,
+            });
           }
         } catch (error) {
           console.error('Error fetching preview:', error);
+          setPostPreview({ title: 'Preview unavailable', thumbnail: null });
         } finally {
           setPreviewLoading(false);
         }
+      } else {
+        setPostPreview(null);
       }
     }, 800);
 
@@ -235,7 +257,6 @@ export const App = () => {
     setTimeout(() => {
       setSelectedCategory(category);
       setView('submit');
-      setHasSubmitted(false);
       setShowEntryForm(true);
       setNomineesStartIndex(0);
       setIsTransitioning(false);
@@ -273,8 +294,20 @@ export const App = () => {
   };
 
   const showToast = (message: string, type: 'success' | 'error') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    setToastLeaving(false);
     setToast({ message, type });
-    setTimeout(() => setToast(null), 5000);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastLeaving(true);
+      toastTimeoutRef.current = setTimeout(() => {
+        setToast(null);
+        setToastLeaving(false);
+        toastTimeoutRef.current = null;
+      }, 300);
+    }, 5000);
   };
 
   const handleDisabledButtonInteraction = () => {
@@ -316,7 +349,7 @@ export const App = () => {
 
       if (result.success) {
         if (result.isAdditionalVote) {
-          showToast('Second Successful', 'success');
+          showToast('YOU HAVE SECONDED THIS NOMINATION!', 'success');
         } else {
           showToast('Nominee submitted successfully', 'success');
           loadNominationCount();
@@ -352,6 +385,10 @@ export const App = () => {
     return undefined;
   };
 
+  /** Unique key for a nomination for second/optimistic-update matching. */
+  const getNominationSecondKey = (nom: Nomination): string =>
+    `${nom.category}:${nom.thingSlug || getSecondPostUrl(nom) || ''}`;
+
   const nominateThisToo = async (
     categoryId: string,
     options: { postUrl?: string; thingSlug?: string },
@@ -380,16 +417,24 @@ export const App = () => {
 
       if (result.success) {
         if (result.isAdditionalVote) {
-          showToast('Second Successful', 'success');
+          showToast('YOU HAVE SECONDED THIS NOMINATION!', 'success');
+          const secondKey = `${categoryId}:${thingSlug || postUrl || ''}`;
+          setNominations((prev) =>
+            prev.map((n) =>
+              getNominationSecondKey(n) === secondKey ? { ...n, currentUserHasSeconded: true } : n
+            )
+          );
+          setJustSecondedKey(secondKey);
+          setTimeout(() => setJustSecondedKey(null), 350);
         } else {
           showToast('Nominee submitted successfully', 'success');
           loadNominationCount();
-        }
-        if (reloadCategoryId != null) {
-          loadNominations(reloadCategoryId);
-        } else {
-          loadNominations();
-          loadEventStats();
+          if (reloadCategoryId != null) {
+            loadNominations(reloadCategoryId);
+          } else {
+            loadNominations();
+            loadEventStats();
+          }
         }
       } else {
         showToast(result.error || 'Failed to add nomination', 'error');
@@ -449,7 +494,11 @@ export const App = () => {
           </div>
         </div>
 
-        <p className="main-subtitle">Recognizing the very best of the internet with 25 awards across 6 glorious categories.</p>
+        <p className="main-subtitle">Celebrating the very best of The Internet</p>
+
+        <div className="award-count-divider">
+          <p className="award-group-break-title">24 AWARDS ACROSS 6 CATEGORIES</p>
+        </div>
 
         {categoryGroups.map(group => {
           const groupCategories = categories.filter(cat => cat.categoryGroup === group.id);
@@ -475,7 +524,7 @@ export const App = () => {
                 </h4>
               </div>
               <p className="award-group-tagline">{group.tagline}</p>
-              <p className="award-group-break-title">THE AWARDS</p>
+              <p className="award-group-break-title">CATEGORY AWARDS</p>
               <div className="award-grid">
                 {groupCategories.map(cat => (
                   <button
@@ -663,11 +712,11 @@ export const App = () => {
         </form>
         )}
 
-        {!hasSubmitted && (
+        {!showNomineeList && (
           <p className="submit-hint">Submit to see list of other nominees</p>
         )}
 
-        {hasSubmitted && (
+        {showNomineeList && (
           <div className="nominees-section">
             <div className="nominees-section-header">
               {selectedCategory && (
@@ -722,45 +771,59 @@ export const App = () => {
                   const secondLine = getNominationSecondLine(nom);
                   return (
                     <div key={idx} className="nomination-card">
-                      <div className="nomination-thumbnail-slot">
-                        {nom.thumbnail ? (
-                          <img 
-                            src={nom.thumbnail} 
-                            alt={nom.title} 
-                            className="nomination-thumbnail"
+                      <div className="nomination-card-body">
+                        <div className="nomination-card-content">
+                          {category && (
+                            <div className="nomination-card-header">
+                              <span className="category-pill">
+                                {category.iconPath ? (
+                                  <img src={category.iconPath} alt="" className="category-pill-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
+                                ) : null}
+                                <span style={{ display: category.iconPath ? 'none' : 'inline' }}>{category.emoji}</span>
+                                <span className="category-pill-name">{category.name}</span>
+                              </span>
+                              <span className="nominee-label">Nominee</span>
+                            </div>
+                          )}
+                          <h4
+                            className={`nomination-title ${hasLink ? 'clickable' : ''}`}
                             onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
-                          />
-                        ) : category ? (
-                          <div 
-                            className="nomination-thumbnail nomination-thumbnail-award-icon"
-                            onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
-                            role={hasLink ? 'button' : undefined}
-                            tabIndex={hasLink ? 0 : undefined}
-                            onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
                           >
-                            {category.iconPath ? (
-                              <img src={category.iconPath} alt={category.name} className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
-                            ) : null}
-                            <span className="nomination-award-icon-emoji" style={{ display: category.iconPath ? 'none' : 'block' }}>{category.emoji}</span>
-                          </div>
-                        ) : null}
+                            {truncateTitle(nom.title, 100)}
+                          </h4>
+                          {secondLine && (
+                            <p className="nomination-second-line">{truncateTitle(secondLine, 80)}</p>
+                          )}
+                        </div>
+                        <div className="nomination-thumbnail-slot">
+                          {nom.thumbnail ? (
+                            <img
+                              src={nom.thumbnail}
+                              alt=""
+                              className="nomination-thumbnail"
+                              onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                            />
+                          ) : category ? (
+                            <div
+                              className="nomination-thumbnail nomination-thumbnail-award-icon"
+                              onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                              role={hasLink ? 'button' : undefined}
+                              tabIndex={hasLink ? 0 : undefined}
+                              onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
+                            >
+                              {category.iconPath ? (
+                                <img src={category.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
+                              ) : null}
+                              <span className="nomination-award-icon-emoji" style={{ display: category.iconPath ? 'none' : 'block' }}>{category.emoji}</span>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="nomination-content">
-                        <h4 
-                          className={`nomination-title ${hasLink ? 'clickable' : ''}`}
-                          onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
-                        >
-                          {truncateTitle(nom.title, 100)}
-                        </h4>
-                        {secondLine && (
-                          <p className="nomination-second-line">{truncateTitle(secondLine, 80)}</p>
-                        )}
-                      </div>
-                      <div className="nomination-actions">
+                      <div className="nomination-card-actions">
                         {(secondPostUrl || nom.thingSlug) && (
                           <button
                             type="button"
-                            className={`second-nominee-button ${nom.currentUserHasSeconded ? 'has-votes' : ''}`}
+                            className={`second-nominee-button ${nom.currentUserHasSeconded ? 'has-votes' : ''} ${getNominationSecondKey(nom) === justSecondedKey ? 'just-seconded' : ''}`}
                             onClick={() =>
                               nominateThisToo(
                                 nom.category,
@@ -774,15 +837,14 @@ export const App = () => {
                           >
                             <img src={nom.currentUserHasSeconded ? '/images/icons/nominee/nominee-arrow-upvoted.png' : '/images/icons/nominee/nominee-arrow.png'} alt="" className="second-nominee-arrow" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                             <span className="second-nominee-arrow-fallback" style={{ display: 'none' }} aria-hidden>↑</span>
-                            <span className="second-nominee-plus">+1</span>
-                            <span className="second-nominee-text">{nom.currentUserHasSeconded ? 'Seconded!' : 'Second this nominee'}</span>
+                            <span className="second-nominee-text">{nom.currentUserHasSeconded ? 'Seconded!' : '+1'}</span>
                           </button>
                         )}
                         {hasLink && linkUrl && (
-                          <a 
-                            href={linkUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                          <a
+                            href={linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="nominee-link-button"
                             onClick={(e) => e.stopPropagation()}
                             aria-label="View post"
@@ -809,7 +871,6 @@ export const App = () => {
                         className="related-award-button"
                         onClick={() => {
                           setSelectedCategory(award);
-                          setHasSubmitted(false);
                           setShowEntryForm(true);
                           setNomineesStartIndex(0);
                           setNominationTitle('');
@@ -898,63 +959,59 @@ export const App = () => {
               const secondLine = getNominationSecondLine(nom);
               return (
                 <div key={idx} className="nomination-card">
-                  <div className="nomination-thumbnail-slot">
-                    {nom.thumbnail ? (
-                      <img 
-                        src={nom.thumbnail} 
-                        alt={nom.title} 
-                        className="nomination-thumbnail"
+                  <div className="nomination-card-body">
+                    <div className="nomination-card-content">
+                      {category && (
+                        <div className="nomination-card-header">
+                          <span className="category-pill">
+                            {category.iconPath ? (
+                              <img src={category.iconPath} alt="" className="category-pill-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
+                            ) : null}
+                            <span style={{ display: category.iconPath ? 'none' : 'inline' }}>{category.emoji}</span>
+                            <span className="category-pill-name">{category.name}</span>
+                          </span>
+                          <span className="nominee-label">Nominee</span>
+                        </div>
+                      )}
+                      <h4
+                        className={`nomination-title ${hasLink ? 'clickable' : ''}`}
                         onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
-                      />
-                    ) : category ? (
-                      <div 
-                        className="nomination-thumbnail nomination-thumbnail-award-icon"
-                        onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
-                        role={hasLink ? 'button' : undefined}
-                        tabIndex={hasLink ? 0 : undefined}
-                        onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
                       >
-                        {category.iconPath ? (
-                          <img src={category.iconPath} alt={category.name} className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
-                        ) : null}
-                        <span className="nomination-award-icon-emoji" style={{ display: category.iconPath ? 'none' : 'block' }}>{category.emoji}</span>
-                      </div>
-                    ) : null}
+                        {truncateTitle(nom.title, 100)}
+                      </h4>
+                      {secondLine && (
+                        <p className="nomination-second-line">{truncateTitle(secondLine, 80)}</p>
+                      )}
+                    </div>
+                    <div className="nomination-thumbnail-slot">
+                      {nom.thumbnail ? (
+                        <img
+                          src={nom.thumbnail}
+                          alt=""
+                          className="nomination-thumbnail"
+                          onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                        />
+                      ) : category ? (
+                        <div
+                          className="nomination-thumbnail nomination-thumbnail-award-icon"
+                          onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                          role={hasLink ? 'button' : undefined}
+                          tabIndex={hasLink ? 0 : undefined}
+                          onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
+                        >
+                          {category.iconPath ? (
+                            <img src={category.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
+                          ) : null}
+                          <span className="nomination-award-icon-emoji" style={{ display: category.iconPath ? 'none' : 'block' }}>{category.emoji}</span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="nomination-content">
-                    {category && (
-                      <div className="category-badge-small">
-                        {category.iconPath ? (
-                          <img 
-                            src={category.iconPath} 
-                            alt={category.name}
-                            className="category-badge-icon"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'inline';
-                            }}
-                          />
-                        ) : null}
-                        <span style={{ display: category.iconPath ? 'none' : 'inline' }}>{category.emoji}</span> {category.name}
-                        <span className="nominee-label">Nominee</span>
-                      </div>
-                    )}
-                    <h4 
-                      className={`nomination-title ${hasLink ? 'clickable' : ''}`}
-                      onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
-                    >
-                      {truncateTitle(nom.title, 100)}
-                    </h4>
-                    {secondLine && (
-                      <p className="nomination-second-line">{truncateTitle(secondLine, 80)}</p>
-                    )}
-                  </div>
-                  <div className="nomination-actions">
+                  <div className="nomination-card-actions">
                     {(secondPostUrl || nom.thingSlug) && (
                       <button
                         type="button"
-                        className={`second-nominee-button ${nom.currentUserHasSeconded ? 'has-votes' : ''}`}
+                        className={`second-nominee-button ${nom.currentUserHasSeconded ? 'has-votes' : ''} ${getNominationSecondKey(nom) === justSecondedKey ? 'just-seconded' : ''}`}
                         onClick={() =>
                           nominateThisToo(
                             nom.category,
@@ -967,15 +1024,14 @@ export const App = () => {
                       >
                         <img src={nom.currentUserHasSeconded ? '/images/icons/nominee/nominee-arrow-upvoted.png' : '/images/icons/nominee/nominee-arrow.png'} alt="" className="second-nominee-arrow" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                         <span className="second-nominee-arrow-fallback" style={{ display: 'none' }} aria-hidden>↑</span>
-                        <span className="second-nominee-plus">+1</span>
-                        <span className="second-nominee-text">{nom.currentUserHasSeconded ? 'Seconded!' : 'Second this nominee'}</span>
+                        <span className="second-nominee-text">{nom.currentUserHasSeconded ? 'Seconded!' : '+1'}</span>
                       </button>
                     )}
                     {hasLink && linkUrl && (
-                      <a 
-                        href={linkUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="nominee-link-button"
                         onClick={(e) => e.stopPropagation()}
                         aria-label="View post"
@@ -1006,7 +1062,7 @@ export const App = () => {
   return (
     <div className="app-container">
       {toast && (
-        <div className={`toast toast-${toast.type}`}>
+        <div className={`toast toast-${toast.type} ${toastLeaving ? 'toast-leave' : ''}`}>
           {toast.message}
         </div>
       )}

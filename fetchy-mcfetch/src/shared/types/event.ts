@@ -9,6 +9,8 @@ export interface AwardCategory {
   name: string;
   emoji: string;
   description: string;
+  /** Short instruction for LLM/resolve script: what to return (e.g. "Game Title", "Name of a subreddit") */
+  resolutionGuidance?: string;
   bannerImage?: string;
   headerImage?: string; // Award header background for nomination page (1200x300px)
   headerTextAlign?: 'left' | 'right'; // Text alignment for header title (default: center)

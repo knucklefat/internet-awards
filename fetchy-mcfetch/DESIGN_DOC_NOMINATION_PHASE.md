@@ -14,7 +14,7 @@
 
 - **Enable community-driven award nominations** for The Internet Awards inside Reddit: users submit and view nominations by category; moderators manage the event and export data for judging.
 - **Run entirely on Reddit’s Devvit platform** (WebView + serverless backend + Redis) so the experience is native to Reddit and does not require external hosting.
-- **Support many categories in one app:** a single event with multiple award categories (e.g. 25 awards in 6 groups), with filtering, previews, and CSV export for organizers.
+- **Support many categories in one app:** a single event with multiple award categories (e.g. 24 awards in 6 groups), with filtering, previews, and CSV export for organizers.
 - **Keep moderator tooling in-app:** mod-only admin panel (stats, export, clear) and mod menu action to create nomination posts, using Reddit’s moderator APIs correctly (e.g. `getModerators().all()`, caching, request context).
 
 We will **not** in this phase: run the voting/ballot experience (that is a separate app, ballot-box), host user data outside Reddit/Devvit, or support non-Devvit clients.
@@ -134,6 +134,12 @@ We plan to process exported nomination data using a **script that calls an LLM A
 - **Provider-agnostic:** The specific LLM provider (e.g. OpenAI, Anthropic, Gemini) has not yet been decided. The design and script will reference a generic **“LLM API”** so we can swap in the chosen provider (and SDK) later without changing the overall flow.
 - **Data source:** Input to the script will be nomination data exported from this app (e.g. via the existing CSV export or an equivalent bulk dump). No direct Redis or Reddit API access from the script is required for the base design; the script operates on exported payloads.
 - **Scope:** This processing is **post-nomination** and **off-platform** (not part of the Devvit server or client). It does not affect real-time submission, listing, or moderation inside the app. Details (exact prompts, output schema, and where results are stored or used) will be documented when the script is implemented and the LLM API provider is selected.
+
+### Recent UX / implementation notes (Feb 2026)
+
+- **Nominee list visibility (Option B – global):** The “Other Nominees” list on the submit screen is shown when the user has submitted at least one nomination **in this event** (any award). Implemented via `showNomineeList = hasSubmitted || (nominationCount?.used > 0)`; nomination count comes from existing `GET /api/user/nomination-count`. The list no longer resets when switching awards or when the user returns after an award is closed. **Option A (per-award)** is prepared: a single derived `showNomineeList` in the client; to switch to per-award, add `GET /api/user/has-nominated?category=...`, set `hasNominatedForCategory`, and use `hasSubmitted || hasNominatedForCategory` (see comment in `App.tsx`).
+- **Seconding (“Nominate too”):** On successful second we do **not** refetch the full list or scroll; we apply an optimistic update so only the seconded card’s button state changes. The Second button plays a short bounce animation when it switches to seconded. This avoids list jump and lost scroll position.
+- **Toasts:** Toasts are fixed at the top (centered with `left`/`right` + margin, no horizontal transform) so they stay visible and are not clipped on mobile WebView. They fade in and fade out; leave animation runs before unmount.
 
 ---
 
