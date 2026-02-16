@@ -22,6 +22,7 @@ export const AdminPanel = ({ onClose }: Props) => {
   const [sortNominators, setSortNominators] = useState<NominatorSort>('active');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedAwardId, setSelectedAwardId] = useState<string | null>(null);
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
   const [hideUnhideLoading, setHideUnhideLoading] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export const AdminPanel = ({ onClose }: Props) => {
 
   useEffect(() => {
     if (activeView === 'categories' && eventConfig?.categoryGroups?.length) {
-      setSelectedCategoryId((prev) => prev || (eventConfig.categoryGroups[0]?.id ?? null));
+      setSelectedCategoryId((prev) => (prev !== null && prev !== '' ? prev : null));
     }
   }, [activeView, eventConfig?.categoryGroups]);
 
@@ -207,6 +208,17 @@ export const AdminPanel = ({ onClose }: Props) => {
     setActiveView('awards');
   };
 
+  const toggleCategoryExpanded = (groupId: string) => {
+    setExpandedCategoryIds((prev) =>
+      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
+    );
+  };
+
+  const awardsInCategoryGroup = (groupId: string) => {
+    if (!eventConfig?.categories) return [];
+    return eventConfig.categories.filter((a: any) => a.categoryGroup === groupId);
+  };
+
   const getSecondLine = (nom: any) => {
     const hasLink = Boolean(nom.url && nom.url.trim());
     if (!hasLink) return '';
@@ -274,21 +286,19 @@ export const AdminPanel = ({ onClose }: Props) => {
         <div className="admin-stats-row-sticky">
           <div className="admin-stats-header-row">
             <h3 className="admin-stats-title">NOMINATION STATISTICS</h3>
-            {activeView === 'nominations' && (
-              <button
-                type="button"
-                className="admin-download-icon-btn"
-                onClick={handleExport}
-                disabled={exporting}
-                title="Export CSV to clipboard"
-              >
-                {exporting ? (
-                  <span className="admin-download-icon-text">…</span>
-                ) : (
-                  <img src="/images/icons/download.png" alt="Export CSV" className="admin-download-icon-img" />
-                )}
-              </button>
-            )}
+            <button
+              type="button"
+              className="admin-download-icon-btn"
+              onClick={handleExport}
+              disabled={exporting}
+              title="Export CSV to clipboard"
+            >
+              {exporting ? (
+                <span className="admin-download-icon-text">…</span>
+              ) : (
+                <img src="/images/icons/download.png" alt="Export CSV" className="admin-download-icon-img" />
+              )}
+            </button>
           </div>
           <div className="admin-stats-cards-row">
             <div
@@ -296,7 +306,7 @@ export const AdminPanel = ({ onClose }: Props) => {
               onClick={() => setActiveView('nominations')}
             >
               <span className="admin-stat-number">{stats.totalNominations}</span>
-              <span className="admin-stat-label">NOMINATIONS</span>
+              <span className="admin-stat-label">NOMINEES</span>
             </div>
             <div
               className={`admin-stat-card ${activeView === 'categories' ? 'active' : ''}`}
@@ -317,7 +327,7 @@ export const AdminPanel = ({ onClose }: Props) => {
               onClick={() => setActiveView('nominators')}
             >
               <span className="admin-stat-number">{stats.totalNominators}</span>
-              <span className="admin-stat-label">NOMINATORS</span>
+              <span className="admin-stat-label">SUBMITORS</span>
             </div>
           </div>
         </div>
@@ -335,7 +345,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                     onChange={(e) => setSortNominations(e.target.value as NominationSort)}
                     aria-label="Sort nominees"
                   >
-                    <option value="most_seconded">Most seconded</option>
+                    <option value="most_seconded">SECONDED</option>
                     <option value="newest">Newest</option>
                   </select>
                 </div>
@@ -387,72 +397,75 @@ export const AdminPanel = ({ onClose }: Props) => {
           {activeView === 'categories' && (
             <div className="admin-view-section">
               <div className="admin-view-toolbar">
-                <label className="admin-view-title">CATEGORIES</label>
-                <div className="admin-toolbar-right">
+                <div className="admin-toolbar-title-with-dropdown">
+                  <span className="admin-view-title admin-view-title-inline">CATEGORY:</span>
                   <select
-                    className="admin-dropdown"
+                    className="admin-dropdown admin-dropdown-inline"
                     value={selectedCategoryId ?? ''}
-                    onChange={(e) => setSelectedCategoryId(e.target.value || null)}
+                    onChange={(e) => setSelectedCategoryId(e.target.value === '' ? '' : e.target.value || null)}
                   >
+                    <option value="">ALL</option>
                     {categoryGroupsWithCounts.map((g: any, i: number) => (
                       <option key={g.id} value={g.id}>{i + 1}. {g.name} ({g.count})</option>
                     ))}
                   </select>
                 </div>
               </div>
-              {selectedCategoryId && awardsInSelectedCategory.map((award: any) => {
-                const awardNoms = nominations.filter((n: any) => n.category === award.id);
-                return (
-                  <div key={award.id} className="admin-category-award-block">
-                    <div className="admin-award-header">
-                      <span className="admin-award-icon">
-                        {award.iconPath ? <img src={award.iconPath} alt="" /> : award.emoji}
-                      </span>
-                      <span className="admin-award-name">{award.name}</span>
-                      <button type="button" className="admin-see-award-btn" onClick={() => goToAward(award.id)}>
-                        SEE AWARD
-                      </button>
+              {(selectedCategoryId === '' || selectedCategoryId === null) ? (
+                <div className="admin-categories-all-list">
+                  {categoryGroupsWithCounts.map((g: any) => {
+                    const isExpanded = expandedCategoryIds.includes(g.id);
+                    const awards = awardsInCategoryGroup(g.id);
+                    return (
+                      <div key={g.id} className="admin-category-group-row">
+                        <button
+                          type="button"
+                          className="admin-category-group-header"
+                          onClick={() => toggleCategoryExpanded(g.id)}
+                          aria-expanded={isExpanded}
+                        >
+                          <span className="admin-category-group-name">{g.name}</span>
+                          <span className="admin-category-group-count">({g.count})</span>
+                          <span className={`admin-expand-icon ${isExpanded ? 'expanded' : ''}`} aria-hidden>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                          </span>
+                        </button>
+                        {isExpanded && (
+                          <div className="admin-category-group-awards">
+                            {awards.map((award: any) => (
+                              <div key={award.id} className="admin-award-header">
+                                <span className="admin-award-icon">
+                                  {award.iconPath ? <img src={award.iconPath} alt="" /> : <span>{award.emoji}</span>}
+                                </span>
+                                <span className="admin-award-name">{award.name}</span>
+                                <button type="button" className="admin-see-award-btn" onClick={() => goToAward(award.id)}>
+                                  SEE AWARD
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : selectedCategoryId ? (
+                <div className="admin-category-awards-only">
+                  {awardsInSelectedCategory.map((award: any) => (
+                    <div key={award.id} className="admin-category-award-block">
+                      <div className="admin-award-header">
+                        <span className="admin-award-icon">
+                          {award.iconPath ? <img src={award.iconPath} alt="" /> : <span>{award.emoji}</span>}
+                        </span>
+                        <span className="admin-award-name">{award.name}</span>
+                        <button type="button" className="admin-see-award-btn" onClick={() => goToAward(award.id)}>
+                          SEE AWARD
+                        </button>
+                      </div>
                     </div>
-                    <div className="admin-nominee-list">
-                      {awardNoms.length === 0 ? (
-                        <div className="admin-empty">No nominees for this award.</div>
-                      ) : (
-                        awardNoms.map((nom: any, idx: number) => {
-                          const secondLine = getSecondLine(nom);
-                          return (
-                            <div key={nom.memberKey ?? `${award.id}-${idx}`} className="admin-nominee-card">
-                              <div className="admin-nominee-thumb">
-                                {nom.thumbnail ? (
-                                  <img src={nom.thumbnail} alt="" />
-                                ) : award.iconPath ? (
-                                  <img src={award.iconPath} alt={award.name} />
-                                ) : (
-                                  <span>{award.emoji}</span>
-                                )}
-                              </div>
-                              <div className="admin-nominee-body">
-                                <div className="admin-nominee-title">{nom.title}</div>
-                                {secondLine && <div className="admin-nominee-sub">{secondLine}</div>}
-                              </div>
-                              <div className="admin-nominee-action">
-                                {nom.hidden ? (
-                                  <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnhide(nom.memberKey)} disabled={hideUnhideLoading === nom.memberKey} title="Show">
-                                    <svg className="admin-hide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                  </button>
-                                ) : (
-                                  <button type="button" className="admin-hide-btn hide" onClick={() => handleHide(nom.memberKey)} disabled={hideUnhideLoading === nom.memberKey} title="Hide">
-                                    <svg className="admin-hide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -460,10 +473,10 @@ export const AdminPanel = ({ onClose }: Props) => {
           {activeView === 'awards' && (
             <div className="admin-view-section">
               <div className="admin-view-toolbar">
-                <label className="admin-view-title">AWARDS</label>
-                <div className="admin-toolbar-right admin-toolbar-right-group">
+                <div className="admin-toolbar-title-with-dropdown">
+                  <span className="admin-view-title admin-view-title-inline">AWARD:</span>
                   <select
-                    className="admin-dropdown"
+                    className="admin-dropdown admin-dropdown-inline"
                     value={selectedAwardId ?? ''}
                     onChange={(e) => setSelectedAwardId(e.target.value || null)}
                   >
@@ -471,13 +484,15 @@ export const AdminPanel = ({ onClose }: Props) => {
                       <option key={a.id} value={a.id}>{a.name} ({a.count})</option>
                     ))}
                   </select>
+                </div>
+                <div className="admin-toolbar-right">
                   <select
                     className="admin-sort-dropdown"
                     value={sortNominations}
                     onChange={(e) => setSortNominations(e.target.value as NominationSort)}
                     aria-label="Sort nominees"
                   >
-                    <option value="most_seconded">Most seconded</option>
+                    <option value="most_seconded">SECONDED</option>
                     <option value="newest">Newest</option>
                   </select>
                 </div>

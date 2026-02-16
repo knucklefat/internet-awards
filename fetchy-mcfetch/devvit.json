@@ -3,7 +3,11 @@
   "name": "fetchy-mcfetch",
   "permissions": {
     "reddit": {},
-    "redis": true
+    "redis": true,
+    "http": {
+      "enable": true,
+      "domains": ["reddit.com", "www.reddit.com", "redd.it"]
+    }
   },
   "post": {
     "dir": "dist/client",

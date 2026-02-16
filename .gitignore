@@ -10,3 +10,8 @@ webroot
 dist
 .env
 csv-downloads/*.csv
+# Archived / binary
+picky-mcpick/
+*.zip
+# Nested repo (Phase 2 app – use its own repo or add as submodule)
+ballot-box/

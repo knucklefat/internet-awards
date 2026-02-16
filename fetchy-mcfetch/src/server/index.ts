@@ -118,6 +118,94 @@ function getSubredditNameFromUrl(url: string): string | undefined {
   return m ? m[1] : undefined;
 }
 
+/** Reddit short link: e.g. reddit.com/r/sub/s/ABC123 or redd.it/ABC123 */
+const REDDIT_SHORT_LINK_REGEX = /reddit\.com\/.*\/s\/[a-z0-9]+/i;
+
+function isRedditShortLink(url: string): boolean {
+  const u = url.trim();
+  return REDDIT_SHORT_LINK_REGEX.test(u) || /^https?:\/\/redd\.it\/[a-z0-9]+/i.test(u);
+}
+
+const REDDIT_JSON_USER_AGENT = 'InternetAwards/1.0 (Devvit; fetchy-mcfetch)';
+
+/**
+ * Resolve Reddit short link to final URL by following redirects.
+ * Returns the final URL if resolution succeeds, null otherwise.
+ */
+async function resolveRedditShortLink(url: string): Promise<string | null> {
+  try {
+    const normalized = url.trim();
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      return null;
+    }
+    const response = await fetch(normalized, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': REDDIT_JSON_USER_AGENT },
+    });
+    const finalUrl = response.url;
+    if (finalUrl && finalUrl !== normalized) {
+      return finalUrl;
+    }
+    return null;
+  } catch (e) {
+    console.error('resolveRedditShortLink failed:', e);
+    return null;
+  }
+}
+
+/**
+ * Get post ID from a Reddit short link by using the .json API.
+ * Short links (reddit.com/r/sub/s/{id} or redd.it/{id}) redirect to
+ * reddit.com/r/sub/comments/{submission_id}/_/{comment_id}; we need the submission_id.
+ * - PRAW handles this via submission(url=short_link); we have no PRAW, so we fetch .json.
+ * - Unauthenticated GET from servers can get 403 (Reddit may block datacenter IPs).
+ * See: https://www.reddit.com/r/redditdev/comments/18i7lxa/ and .../1ervz8l/
+ */
+async function getPostIdFromShortLink(url: string): Promise<string | null> {
+  try {
+    const normalized = url.trim();
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      return null;
+    }
+    const jsonUrl = normalized.replace(/\/*(\?.*)?$/, '') + '.json';
+    const response = await fetch(jsonUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': REDDIT_JSON_USER_AGENT, Accept: 'application/json' },
+    });
+
+    if (response.status === 403) {
+      console.warn('getPostIdFromShortLink: Reddit returned 403 (short-link resolve may be blocked from this environment)');
+      return null;
+    }
+
+    const finalUrl = response.url || jsonUrl;
+    const fromUrl = extractPostId(finalUrl);
+    if (fromUrl) {
+      return fromUrl;
+    }
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return null;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return null;
+    }
+    const first = data[0] as { data?: { children?: Array<{ data?: { id?: string } }> } };
+    const id = first?.data?.children?.[0]?.data?.id;
+    return typeof id === 'string' && /^[a-z0-9]+$/i.test(id) ? id : null;
+  } catch (e) {
+    console.error('getPostIdFromShortLink failed:', e);
+    return null;
+  }
+}
+
 /** Max length for thing slug in Redis key (safe, readable) */
 const THING_SLUG_MAX_LENGTH = 80;
 
@@ -212,28 +300,12 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
       req.context?.subredditName || context.subredditName || context.subredditId;
 
     if (!username) {
-      res.json({
-        success: true,
-        isModerator: false,
-        debug: {
-          username,
-          subredditName,
-          reason: 'Missing username',
-        },
-      });
+      res.json({ success: true, isModerator: false });
       return;
     }
 
     if (!subredditName) {
-      res.json({
-        success: true,
-        isModerator: false,
-        debug: {
-          username,
-          subredditName,
-          reason: 'Missing subreddit',
-        },
-      });
+      res.json({ success: true, isModerator: false });
       return;
     }
 
@@ -254,26 +326,10 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
 
     const isModerator = moderatorUsernames.includes(username);
 
-    res.json({
-      success: true,
-      isModerator,
-      debug: {
-        username,
-        subredditName,
-        moderatorCount: moderatorUsernames.length,
-        moderators: moderatorUsernames,
-        checkedUsername: username,
-      },
-    });
+    res.json({ success: true, isModerator });
   } catch (error) {
     console.error('[MOD CHECK] Error:', error);
-    res.json({
-      success: true,
-      isModerator: false,
-      debug: {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
+    res.json({ success: true, isModerator: false });
   }
 });
 
@@ -339,7 +395,14 @@ router.get('/api/preview-post', async (req, res): Promise<void> => {
       return;
     }
 
-    const postId = extractPostId(url);
+    let postId = extractPostId(url);
+
+    if (!postId && isRedditShortLink(url)) {
+      const fromShort = await getPostIdFromShortLink(url);
+      if (fromShort) {
+        postId = fromShort;
+      }
+    }
 
     if (!postId) {
       // Accept subreddit URLs as "supporting community" (no post preview)
@@ -440,19 +503,62 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
     const thingSlugParam = typeof bodyThingSlug === 'string' ? bodyThingSlug.trim() : '';
 
     if (hasLink) {
-      const postId = extractPostId(postUrl);
+      let postId = extractPostId(postUrl);
 
       if (!postId) {
-        // Subreddit URL: treat as "supporting community" link, use link-free identity
-        if (isSubredditUrl(postUrl)) {
-          const subName = getSubredditNameFromUrl(postUrl);
-          if (!title) {
-            res.status(400).json({
-              error: 'Nominee name or description is required',
-              success: false,
+        // Second by thingSlug when user sent thingSlug and no title (e.g. "Second" on link-free or short-link nomination)
+        if (thingSlugParam.length > 0 && !title) {
+          const slugForKey = thingSlugParam.slice(0, THING_SLUG_MAX_LENGTH);
+          const memberKey = `${category}:free:${slugForKey}`;
+          const nominationKey = `nomination:${memberKey}`;
+          const existing = await redis.hGetAll(nominationKey);
+          if (Object.keys(existing).length > 0) {
+            const alreadySeconded = await redis.hGet(`user_seconded:${nominatedBy}`, memberKey);
+            if (alreadySeconded === '1') {
+              res.status(400).json({
+                error: 'You have already seconded this nominee',
+                success: false,
+              });
+              return;
+            }
+            const currentVoteCount = parseInt(existing.voteCount || '1');
+            const newVoteCount = currentVoteCount + 1;
+            await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
+            await redis.hSet(`user_seconded:${nominatedBy}`, { [memberKey]: '1' });
+            res.json({
+              success: true,
+              isAdditionalVote: true,
+              voteCount: newVoteCount,
+              data: existing,
             });
             return;
           }
+          res.status(404).json({
+            error: 'Nomination not found for this thing',
+            success: false,
+          });
+          return;
+        }
+
+        // Resolve Reddit short link via .json API to get post ID
+        if (isRedditShortLink(postUrl)) {
+          const resolvedId = await getPostIdFromShortLink(postUrl);
+          if (resolvedId) {
+            postId = resolvedId;
+          }
+        }
+
+        if (!postId) {
+          // Subreddit URL: treat as "supporting community" link, use link-free identity
+          if (isSubredditUrl(postUrl)) {
+            const subName = getSubredditNameFromUrl(postUrl);
+            if (!title) {
+              res.status(400).json({
+                error: 'Nominee name or description is required',
+                success: false,
+              });
+              return;
+            }
           const slug = normalizeThingSlug(title);
           const slugForKey = slug.length > 0 ? slug.slice(0, THING_SLUG_MAX_LENGTH) : crypto.randomUUID();
           const memberKey = `${category}:free:${slugForKey}`;
@@ -500,13 +606,14 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
           await redis.hSet(nominationKey, nomination);
           res.json({ success: true, isAdditionalVote: false, data: nomination });
           return;
-        }
+          }
 
         res.status(400).json({
           error: 'Invalid Reddit URL format. Use a post link (reddit.com/r/.../comments/...) or a subreddit link (reddit.com/r/SubredditName).',
           success: false,
         });
         return;
+        }
       }
 
       // Post URL: fetch post, use category:postId identity

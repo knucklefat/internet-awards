@@ -11,12 +11,12 @@ A comprehensive Devvit app for managing award nominations across multiple catego
 ## 📋 **OVERVIEW**
 
 ### **Current Status**
-- **Version:** 0.0.88 (Latest)
+- **Version:** 0.0.290+ (see `devvit upload` / Developer Portal)
 - **Status:** ✅ Production Ready
-- **Live on:** r/internetawards_dev (via CLI install)
-- **Last Updated:** January 15, 2026
+- **Live on:** r/internetawards_dev (dev); install on main Reddit subreddit via CLI or Mod Panel
+- **Last Updated:** February 5, 2026
 - **Event:** Single Event - 24 Awards in 6 Categories
-- **Installation:** Via CLI (`devvit install`) or Mod Panel (after review approval)
+- **Installation:** `devvit install <subreddit> fetchy-mcfetch` from `fetchy-mcfetch/`; or publish then install from Mod Tools → Installed Apps
 
 ### **What It Does**
 The Internet Awards app allows Reddit users to:

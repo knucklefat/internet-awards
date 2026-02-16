@@ -1,591 +1,194 @@
-# 🏆 The Internet Awards - Nomination System
+# fetchy-mcfetch
 
-**App folder:** `fetchy-mcfetch/`. Run all commands from that folder.
+**A Reddit Devvit app for community-driven nominations.** Run multi-category “nominate and second” flows (awards, polls, crowdsourcing) inside a subreddit. Configure categories, rate limits, and branding; moderate via an in-app admin panel and CSV export.
 
-**A Reddit-native nomination and voting platform for community-driven awards**
-
-A comprehensive Devvit app for managing award nominations across multiple categories. Built for The Internet Awards to recognize the best posts in Games & Hobbies, with support for multi-day events and various award types.
+This repo can be forked and customized for your own event (awards, “best of,” community picks, etc.). It is also used as **The Internet Awards** nomination app; that usage is documented in [INTERNET_AWARDS_USAGE.md](INTERNET_AWARDS_USAGE.md).
 
 ---
 
-## 📋 **OVERVIEW**
+## What it is
 
-### **Current Status**
-- **Version:** 0.0.88 (Latest)
-- **Status:** ✅ Production Ready
-- **Live on:** r/internetawards_dev (via CLI install)
-- **Last Updated:** January 15, 2026
-- **Event:** Single Event - 25 Awards in 6 Categories
-- **Installation:** Via CLI (`devvit install`) or Mod Panel (after review approval)
+- **Platform:** [Reddit Devvit](https://developers.reddit.com/) (WebView client + serverless Node server + Redis).
+- **Purpose:** Let subreddit members submit **nominations** into multiple **categories**, optionally attach a **Reddit post** (or link-free text), and **second** (support) existing nominations. Moderators manage content and export data.
+- **Entry:** Splash screen → “Submit” opens the main WebView: category picker → award/category → submit form → list of other nominees with second buttons.
 
-### **What It Does**
-The Internet Awards app allows Reddit users to:
-- **Nominate posts** across multiple award categories
-- **View nominations** with rich post previews and metadata
-- **Export data** to CSV for organizers and judges
-- **Browse categories** with animated GIF banners
-- **Preview posts** in real-time during nomination
+All commands below are run from the **`fetchy-mcfetch/`** directory.
 
 ---
 
-## 🎯 **FEATURES**
+## Capabilities
 
-### **Core Functionality**
-✅ **Multi-Category System** - Single app supports multiple award categories  
-✅ **Automatic Post Fetching** - Extracts title, author, karma, subreddit from Reddit URLs  
-✅ **Rich Post Previews** - Thumbnails and metadata display  
-✅ **CSV Export** - One-click export of all nominations for judges  
-✅ **Redis Data Storage** - Persistent nomination tracking  
-✅ **Mobile-Optimized** - Responsive design for Reddit mobile  
-
-### **All 24 Award Categories**
-
-**🎮 Games & Hobbies:**
-1. Best Game - Digital or Analog
-2. Most Collectable Collectable
-3. Best Original Creation
-4. Best Original Story
-
-**🎥 Content Creators:**
-5. Best YouTuber/Video Creator
-6. Best Streamer
-7. Best Digital Artist
-8. Best Musician/Music Creator
-
-**🌐 Communities & Culture:**
-9. Best Subreddit
-10. Best Meme/Viral Post
-11. Most Wholesome Moment
-12. Best Community Effort
-
-**📚 Knowledge & Education:**
-13. Best ELI5/Explanation
-14. Best Tutorial/How-To
-15. Best Expert Insight
-16. Best Research/Scientific Discussion
-
-**🎬 Entertainment & Media:**
-17. Best Movie Discussion/Review
-18. Best TV Show Discussion
-19. Best Book Discussion/Review
-20. Best Entertainment News/Analysis
-
-**🌟 Life & Lifestyle:**
-21. Best Life Advice/Wisdom
-22. Best Transformation Story
-23. Best Food/Recipe Post
-24. Best DIY/Home Project
-
-### **UX Features**
-- **Animated Banners** - GIF support for category headers
-- **Post Preview** - Real-time preview as you type URL
-- **Compact Stats** - Karma, user, subreddit in single row
-- **Skeleton Loading** - Smooth loading states
-- **Toast Notifications** - User feedback for actions
-- **Share Buttons** - Easy sharing to Reddit
-- **Title Truncation** - Long titles elegantly handled
+| Capability | Description |
+|------------|-------------|
+| **Multi-category events** | One event with many categories; categories can be grouped (e.g. “Games”, “Creators”). Config-driven (no code change for new categories). |
+| **Link or link-free nominations** | Nominate with a Reddit post URL (title/thumbnail fetched) or with name/description only (no link). |
+| **Seconding (“Nominate too”)** | Users can second existing nominees; count is tracked; one second per user per nomination. |
+| **Per-user rate limit** | Configurable cap on **new** nominations per user (e.g. 30); seconding does not count. Enforced server-side; 429 when over limit. |
+| **Post preview** | Pasting a Reddit URL (including short links) fetches title/thumbnail for the form. Uses Devvit HTTP fetch for `reddit.com`, `www.reddit.com`, `redd.it`. |
+| **Mod-only post creation** | Menu item for moderators creates a custom post that opens the app (splash or main view). |
+| **Admin panel** | Mod-only panel (e.g. type “admin”): stats, nominations list, hide/unhide nominees, shadow-ban users, CSV export, delete all (with confirmation). |
+| **CSV export** | Export all (or filtered) nominations for judging or external processing. |
+| **Mobile-first UI** | Responsive layout, toasts, skeleton loading, touch-friendly controls. |
 
 ---
 
-## 🏗️ **TECHNICAL ARCHITECTURE**
+## Configuration and options
 
-### **Technology Stack**
-- **Platform:** Reddit Devvit
-- **Frontend:** React 19 + TypeScript
-- **Backend:** Express 5
-- **Database:** Redis (sorted sets + hashes)
-- **Build Tool:** Vite
-- **Styling:** Custom CSS with animations
+### Event and categories
 
-### **Project Structure**
+- **Source:** `src/shared/config/event-config.ts` (and shared types in `src/shared/types/event.ts`).
+- **Exposed via:** `GET /api/event/config` (used by the client).
+- **You define:**
+  - **Category groups** – e.g. “Gaming & Hobbies”, “Knowledge” (id, name, tagline, emoji, accentColor, header image path).
+  - **Categories (awards)** – id, name, description, emoji, `categoryGroup`, optional `iconPath`, `headerImage`, `cardColor`, etc.
+- **Assets:** Header images and icons are referenced by path (e.g. under `src/client/public/images/`); main banner and splash assets in `assets/` or `src/client/public/` as needed.
+
+### Splash and branding
+
+- **Splash:** `src/client/splash.html` + `src/client/splash.tsx` (logic, e.g. “Submit Nominee” → `requestExpandedMode(..., 'main')`). Copy, logo, and background image are in the HTML/CSS.
+- **Post creation (mod menu):** When a mod creates a post, the app uses `src/server/core/post.ts` (splash config, heading, button label, assets). Adjust for your event name and assets.
+
+### Rate limit
+
+- **Default:** 30 new nominations per user per event (seconding does not count).
+- **Where:** Server-side in `src/server/index.ts` (`NOMINATION_LIMIT_PER_USER`, `user_nomination_count:*`, `reserveNominationSlot()`). Change the constant to change the limit; delete-all (or delete by category) resets counts for affected users.
+
+### Menu and display name
+
+- **Menu label and description:** `devvit.json` → `menu.items[].label` and `description`. Update to your event name (e.g. “My Awards - Nominations”).
+- **App name:** `devvit.json` → `name` (slug, e.g. `fetchy-mcfetch`). Display name in Reddit is often the menu label or splash title.
+
+---
+
+## Moderation
+
+| Feature | Description |
+|---------|-------------|
+| **Admin panel** | Mod-only; open by hotkey (e.g. type “admin”). Views: nominations list, nominators, categories, awards; sort and filter. |
+| **Hide / unhide** | Hide a nomination from public “Other Nominees” lists; hidden entries still visible in admin with “Unhide.” |
+| **Shadow ban** | Banned users cannot submit or second; no visible error (treated as failed). Managed in admin. |
+| **Export CSV** | Download all nominations (or by category) for judging or scripts. |
+| **Delete all** | Clear all nominations (and reset user counts) with confirmation. |
+
+Moderator check uses Reddit’s moderator list for the subreddit (`getModerators().all()`, cached); identity from request context or `devvit-user` header.
+
+---
+
+## Tech stack and structure
+
+- **Client:** React 19, TypeScript, Vite, custom CSS.
+- **Server:** Express 5, Node, TypeScript, Vite build.
+- **Data:** Redis (Devvit): sorted set for nomination order, hashes per nomination, keys for user counts, seconded state, hidden list, shadow ban list.
+- **Reddit:** `getPostById` (preview), `getModerators` (mod check), `submitCustomPost` (mod menu “create post”). HTTP fetch only for public Reddit URLs (short-link resolution).
+
 ```
 fetchy-mcfetch/
 ├── src/
-│   ├── client/              # React webview
-│   │   ├── App.tsx         # Main app component
-│   │   ├── main.tsx        # Entry point
-│   │   └── index.html      # HTML template
+│   ├── client/           # WebView app
+│   │   ├── App.tsx       # Main UI, views, form, list
+│   │   ├── splash.html   # Splash entry
+│   │   ├── splash.tsx    # Splash logic
+│   │   └── components/  # e.g. AdminPanel
 │   ├── server/
-│   │   ├── index.ts        # Express server & API
+│   │   ├── index.ts     # API, Redis, mod checks
 │   │   └── core/
-│   │       └── post.ts     # Reddit post creation
+│   │       └── post.ts  # Custom post creation
 │   └── shared/
+│       ├── config/
+│       │   └── event-config.ts   # Categories & groups
 │       └── types/
-│           └── api.ts      # TypeScript interfaces
-├── assets/                  # Static assets (splash images)
-├── devvit.json            # Devvit configuration
-└── package.json           # Dependencies
-```
-(Shared learnings live in repo root: `../LEARNINGS/`.)
-
-### **Redis Data Structure**
-```typescript
-// Sorted set for chronological ordering
-nominations (sorted set)
-  → member: "category:postId"
-  → score: timestamp
-
-// Hash for each nomination's data
-nomination:category:postId (hash)
-  → postId: string
-  → title: string
-  → author: string
-  → subreddit: string
-  → karma: string
-  → url: string
-  → category: string
-  → nominatedBy: string
-  → nominationReason: string
-  → fetchedAt: string
-  → thumbnail: string
-  → permalink: string
+│           └── event.ts          # Event/category types
+├── assets/               # Splash/media for Devvit
+├── devvit.json          # App config, permissions, menu
+└── package.json
 ```
 
 ---
 
-## 🚀 **GETTING STARTED**
+## Getting started
 
-### **Prerequisites**
-- Node.js 22+ required
-- Devvit CLI: `npm install -g devvit`
-- Reddit account with developer access
+### Prerequisites
 
-### **Installation**
+- Node.js 22+
+- [Devvit CLI](https://developers.reddit.com/docs/devvit): `npm install -g devvit`
+- Reddit developer account and app linked for Devvit
+
+### Install and run
+
 ```bash
-# From repo root, go into this app's folder
 cd fetchy-mcfetch
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-### **Development Workflow**
+- **`npm run dev`** – Builds client and server, runs Devvit playtest (default test subreddit in `devvit.json`).
+- **`npm run build`** – Production build.
+- **`npm run deploy`** – Build and upload to Devvit (`devvit upload`).
 
-**Internal Test Subreddit:** r/internetawards_dev (configured in `devvit.json`)
+### Install on a subreddit
 
-```bash
-# Live development on Reddit (uses r/internetawards_dev by default)
-npm run dev
+- **CLI (immediate):** `devvit install <subreddit> fetchy-mcfetch` (from this directory or with app name).
+- **Mod panel:** Publish the app (`devvit publish fetchy-mcfetch@<version>`). Apps that create custom posts may require Reddit review before they appear in “Installed Apps.”
 
-# Build for production
-npm run build
+### Create a nomination post
 
-# Deploy new version
-npm run deploy
-
-# View logs from test subreddit
-devvit logs internetawards_dev
-```
-
-### **Installing the App**
-
-**Option 1: Via Command Line (Immediate)**
-```bash
-# Install on any subreddit you moderate
-devvit install <subreddit-name> fetchy-mcfetch
-
-# Internal test subreddit
-devvit install internetawards_dev fetchy-mcfetch
-
-# Or other subreddits
-devvit install your_subreddit fetchy-mcfetch
-```
-
-**Option 2: Via Reddit Mod Panel (Requires Review)**
-1. Publish the app: `devvit publish fetchy-mcfetch@0.0.55`
-2. Wait for Reddit review approval (for apps that create custom posts)
-3. Once approved, go to your subreddit's mod tools
-4. Navigate to "Installed Apps" → "Add App"
-5. Search for "The Internet Awards" and install
-
-### **Creating a New Award Post**
-1. Go to your subreddit where the app is installed
-2. Click "Mod Tools" → "Create Post" (or the + button)
-3. Select "The Internet Awards - Nominations"
-4. The app will create a custom post with the nomination interface
+As a moderator: Mod Tools → Create Post → choose the menu item you configured (e.g. “The Internet Awards - Nominations”). The app creates a custom post that opens the nomination experience.
 
 ---
 
-## 📖 **API ENDPOINTS**
+## API overview
 
-### **GET /api/event/config**
-Get event configuration including all categories and groups.
+| Method + path | Purpose |
+|---------------|---------|
+| `GET /api/event/config` | Event and category/category-group config (for client). |
+| `GET /api/nominations` | List nominations; optional `?category=<id>`. |
+| `POST /api/submit-nomination` | Create nomination or second (body: category, title, postUrl, reason, etc.). |
+| `GET /api/user/nomination-count` | Current user’s used/limit (for rate limit UI). |
+| `GET /api/preview-post` | Preview data for a Reddit URL (`?url=...`). |
+| `GET /api/user/is-moderator` | Whether current user is subreddit mod. |
+| `GET /api/stats/event` | Event-level stats (e.g. for admin). |
+| `GET /api/export-csv` | CSV export (intended for mod use). |
+| `POST /api/admin/hide-nomination` | Hide nomination (mod). |
+| `POST /api/admin/unhide-nomination` | Unhide (mod). |
+| `POST /api/admin/shadow-ban` | Shadow-ban user (mod). |
+| `POST /api/delete` | Delete all nominations (mod, with confirmation). |
 
-**Response:**
-```typescript
-{
-  success: boolean;
-  data?: {
-    eventName: string;
-    eventDescription: string;
-    startDate: string;
-    endDate: string;
-    categories: Category[];
-    categoryGroups: CategoryGroup[];
-  };
-}
-```
-
-### **POST /api/submit-nomination**
-Submit a new nomination for an award category.
-
-**Request Body:**
-```typescript
-{
-  postUrl: string;      // Reddit post URL
-  category: string;     // Award category ID
-  reason?: string;      // Optional nomination reason
-}
-```
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  data?: {
-    postId: string;
-    title: string;
-    // ... other post data
-  };
-  error?: string;
-}
-```
-
-### **GET /api/nominations**
-Retrieve all nominations, optionally filtered by category.
-
-**Query Parameters:**
-- `category` (optional): Filter by award category
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  data?: Array<Nomination>;
-  error?: string;
-}
-```
-
-### **GET /api/export-csv**
-Export all nominations as CSV for download.
-
-**Response:** CSV file download
-
-### **GET /api/preview-post**
-Get preview data for a Reddit post URL (for UI preview).
-
-**Query Parameters:**
-- `url`: Reddit post URL
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  data?: {
-    title: string;
-    thumbnail: string;
-    permalink: string;
-  };
-  error?: string;
-}
-```
-
-### **POST /api/delete**
-Clear all nominations (moderator only).
+Internal: `POST /internal/menu/post-create` (mod menu → create post), `POST /internal/on-app-install` (optional install hook).
 
 ---
 
-## 🎨 **CUSTOMIZATION**
+## Customization checklist
 
-### **Adding New Award Categories**
-Edit `src/client/App.tsx`:
-
-```typescript
-const AWARD_CATEGORIES = [
-  {
-    id: 'new-category',
-    name: 'New Award Name',
-    emoji: '🎯',
-    description: 'Description of the award'
-  },
-  // ... existing categories
-];
-```
-
-### **Banner Images**
-Place images in `src/client/public/images/banners/`:
-- Category banners: `{category-id}.gif` (or .png, .svg)
-- Main banner: `internet-awards.gif`
-
-**Specifications:**
-- **Format:** GIF (animated), PNG, or SVG
-- **Dimensions:** 1200x300px recommended
-- **File size:** <2MB for GIFs
-
-### **Splash Screen**
-Edit `src/server/core/post.ts`:
-
-```typescript
-splash: {
-  appDisplayName: 'The Internet Awards',
-  heading: '🎮 Day 1: Games & Hobbies',
-  description: 'Your description here',
-  buttonLabel: 'Start Nominating',
-  backgroundUri: 'your-image.png',  // From assets/
-  appIconUri: 'your-icon.png',
-  entryUri: 'index.html'
-}
-```
+1. **Event and categories** – Edit `src/shared/config/event-config.ts`: category groups and categories (names, ids, groups, images, colors).
+2. **Splash and copy** – Edit `src/client/splash.html` (and assets) for logo, headline, button text.
+3. **Post creation copy** – Edit `src/server/core/post.ts` for the post created by the mod menu (splash/heading/button).
+4. **Menu label** – Edit `devvit.json` → `menu.items[].label` and `description`.
+5. **Banners and icons** – Add images under `src/client/public/images/` and reference them in event-config (header images, icons, main banner).
+6. **Rate limit** – In `src/server/index.ts`, change `NOMINATION_LIMIT_PER_USER` if needed.
 
 ---
 
-## 📚 **LEARNINGS & DOCUMENTATION**
+## Documentation in this repo
 
-### **Shared Learnings (repo root)**
-See `../LEARNINGS/` for documentation used by both apps:
-- **DEVVIT_REDIS_AND_DEPLOYMENT.md** - Redis patterns and deployment workflow
-- **UX_REFINEMENTS_AND_ANIMATED_BANNERS.md** - UI/UX decisions and implementations
-- **WORKING_STATE_*.md** - Snapshots of working states
+| Doc | Purpose |
+|-----|---------|
+| **README.md** (this file) | Tool overview, capabilities, options, moderation, API, getting started. |
+| **INTERNET_AWARDS_USAGE.md** | Usage and deployment of this app as “The Internet Awards” nomination system (categories, workflow, history). |
+| **DESIGN_DOC_NOMINATION_PHASE.md** | Design and constraints for the nomination phase. |
+| **UI_PERFORMANCE_POLISH.md** | Performance notes for the client UI. |
+| **AGENT_CATCHUP_FEB_5_2026.md** | Snapshot of behavior and key paths for development. |
 
----
-
-## 🐛 **TROUBLESHOOTING**
-
-### **Post Creation Not Working (FIXED in v0.0.55)**
-**Issue:** Clicking "Create Post" in mod menu fails or errors  
-**Root Causes:**
-1. `/internal/menu/post-create` endpoint defined after router mount
-2. Endpoint on `app` instead of `router`
-3. Wrong response format (needs `navigateTo` key)
-
-**Solution (v0.0.55):**
-```typescript
-// Endpoint MUST be on router BEFORE app.use(router)
-router.post('/internal/menu/post-create', async (_req, res): Promise<void> => {
-  try {
-    const subredditName = context.subredditName;
-    const post = await createPost();
-    res.json({
-      navigateTo: `https://reddit.com/r/${subredditName}/comments/${post.id}`,
-    });
-  } catch (error) {
-    res.status(400).json({ status: 'error', message: 'Failed to create post' });
-  }
-});
-```
-
-### **Server Crashes/HTTP Not Responding (FIXED in v0.0.54)**
-**Issue:** "HTTP server isn't listening anymore" - Server crashes on errors  
-**Root Cause:** Unsafe error handling using `'in' operator` on unknown error types
-
-**Solution:**
-```typescript
-// Safe error message extraction
-function getErrorMessage(error: unknown): string {
-  try {
-    if (error && typeof error === "object" && "message" in error) {
-      return String(error.message);
-    }
-    return String(error);
-  } catch (e) {
-    return "Unknown error";
-  }
-}
-
-// Process-level crash prevention
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', getErrorMessage(error));
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled rejection:', getErrorMessage(reason));
-});
-```
-
-### **App Not Appearing in Mod Panel**
-**Issue:** Can install via CLI but not visible in Reddit mod tools  
-**Solution:** App must be **published** for mod panel visibility:
-```bash
-devvit publish fetchy-mcfetch@0.0.55
-```
-**Note:** Apps that create custom posts require Reddit review before appearing in mod panel. You'll receive an email when approved.
-
-### **App Not Updating After Deploy**
-**Issue:** Changes not visible after `devvit upload`  
-**Solution:** Devvit aggressively caches webview content. Create a **new post** to see updates.
-
-### **Nominations Not Saving**
-**Issue:** POST to `/api/submit-nomination` returns 500 error  
-**Causes:**
-1. Redis permissions not set in `devvit.json`
-2. Data not converted to strings before storing in hash
-3. Invalid Reddit URL format
-
-**Fix:**
-```json
-// devvit.json
-{
-  "permissions": {
-    "redis": true,
-    "reddit": {}
-  }
-}
-```
-
-### **Preview Window Not Loading**
-**Issue:** Click on post does nothing  
-**Solution:** Check `devvit.json` → `post.entrypoints.default.entry` points to `index.html`
-
-### **Images Not Loading**
-**Issue:** Banners or icons show broken image icon  
-**Solution:**
-1. Place images in `assets/` folder (for splash screen)
-2. Place images in `src/client/public/images/` (for webview)
-3. Run `npm run build` to copy assets to `dist/`
-
-### **Installation Fails on Specific Subreddit**
-**Issue:** App installs fine on most subreddits but consistently fails on one specific subreddit (e.g., r/internetawards_dev)  
-**Symptom:** "Installation failed due to app error" but only on that subreddit  
-**Diagnosis:** Likely cached/corrupted state on Reddit's side for that specific app+subreddit combination  
-**Solutions:**
-1. Try installing on a different test subreddit (e.g., r/fetchytest)
-2. Contact Reddit Devvit support with the specific subreddit name
-3. The app code is likely fine if it works elsewhere
+Shared learnings and deployment notes often live in the repo root (e.g. `../LEARNINGS/`).
 
 ---
 
-## 📊 **USAGE STATS**
+## Troubleshooting (short)
 
-### **Deployment History**
-- **Total Versions:** 59+
-- **Development Period:** November 2024 - January 2026
-- **Major Milestones:**
-  - v0.0.12: First working nomination system
-  - v0.0.14: Redis sorted sets implementation
-  - v0.0.27: UX refinements and animated banners
-  - v0.0.33: Custom splash screen
-  - v0.0.34: Multi-day event system (6-day architecture)
-  - v0.0.54: Fixed server crash issues (error handling)
-  - v0.0.55: Fixed post creation + Reddit review approval
-  - v0.0.58: Switched admin icon from SVG to PNG
-  - **v0.0.59: Updated to Devvit 0.12.8** ✨ **CURRENT**
-
-### **Current Version: v0.0.59** ✅
-- **Single Event Platform** - Converted from multi-day to unified event
-- **24 Award Categories** - All categories in one event
-- **Category Groups:** Games, Creators, Communities, Knowledge, Entertainment, Lifestyle
-- **Post Creation Working** - Moderators can create nomination posts via mod menu
-- **Server Stability Fixed** - Safe error handling and crash prevention
-- **Admin Icon Fixed** - Switched from SVG to PNG for proper display
-- **Devvit 0.12.8** - Updated to latest platform version
-- **Test Subreddit:** r/internetawards_dev
-
-### **Key Metrics** (Design Goals)
-- Nominations per category: 20-100 expected
-- Load time: <2s for nomination list
-- Mobile users: Primary audience (70%+)
+- **WebView not updating after deploy** – Devvit caches assets; create a **new** post to load the new bundle.
+- **Nominations 500 / not saving** – Ensure `devvit.json` has `permissions.redis: true` and server stores only string values in Redis hashes.
+- **Mod menu / post creation fails** – Ensure `/internal/menu/post-create` is on the router and returns `{ navigateTo: "https://reddit.com/r/..." }`; moderator check must pass.
+- **Preview or short links fail** – Ensure `devvit.json` has `permissions.http.domains` including `reddit.com`, `www.reddit.com`, `redd.it` if you use those.
 
 ---
 
-## 🔜 **FUTURE ENHANCEMENTS**
-
-### **Planned Features**
-- [ ] Voting system for community choice awards
-- [ ] User profiles with nomination history
-- [ ] Admin dashboard for moderation
-- [ ] Real-time nomination updates
-- [ ] Category-specific rules and guidelines
-- [ ] Duplicate post detection
-- [ ] Nomination leaderboards
-
-### **Multi-Day Event Support**
-- [ ] Day 2-6 category configurations
-- [ ] Event scheduling system
-- [ ] Historical nomination archive
-- [ ] Cross-day analytics
-
----
-
-## 🤝 **CONTRIBUTING**
-
-### **Making Changes**
-1. Test locally with `npm run dev`
-2. Document learnings in `../LEARNINGS/`
-3. Build with `npm run build`
-4. Deploy with `npm run deploy`
-5. Create new post to test changes
-
-### **Code Standards**
-- TypeScript strict mode
-- ESLint + Prettier formatting
-- Component-based architecture
-- Comprehensive error handling
-- Mobile-first responsive design
-
----
-
-## 📞 **SUPPORT**
-
-### **Common Resources**
-- [Devvit Documentation](https://developers.reddit.com/)
-- Shared learnings: `../LEARNINGS/`
-
-### **Debugging Checklist**
-- [ ] Check `devvit logs` for errors
-- [ ] Verify Redis permissions
-- [ ] Confirm build output exists
-- [ ] Test with new post (not cached)
-- [ ] Review browser console for client errors
-
----
-
-## 📝 **CHANGELOG**
-
-### **v0.0.55** (January 13, 2026) ✅ **CURRENT**
-- ✅ **FIXED:** Post creation now working from mod menu
-- Moved `/internal/menu/post-create` endpoint to router before mount
-- Changed response format to return `navigateTo` for proper Reddit navigation
-- Uses global `context.subredditName` for reliable subreddit detection
-- All 24 categories displaying correctly
-
-### **v0.0.54** (January 13, 2026)
-- ✅ **FIXED:** Server crash prevention
-- Added safe `getErrorMessage()` function to prevent "'in' operator" errors
-- Added process-level error handlers (`uncaughtException`, `unhandledRejection`)
-- Server now stays running even when errors occur
-
-### **v0.0.34** (January 6, 2026)
-- Converted to 6-day multi-event platform
-- Added day selection UI
-- Restructured Redis with day-based keys
-- Added admin panel for event management
-- Cross-day analytics
-
-### **v0.0.33** (January 6, 2026)
-- Updated splash screen copy and images
-- Latest asset deployment
-
-### **v0.0.27** (December 2024)
-- Animated GIF banner support
-- Enhanced nomination cards
-- Compact stats layout
-- Post preview during submission
-- Title truncation for long posts
-
-### **v0.0.14** (November 2024)
-- Redis sorted sets + hashes implementation
-- Fixed nomination persistence
-- Added CSV export
-
-### **v0.0.12** (November 2024)
-- Initial working nomination system
-- Multi-category support
-- Basic UI implementation
-
----
-
-**Built with ❤️ by Glass House Productions**  
-**Platform:** Reddit Devvit | **License:** MIT
+**License:** MIT · **Platform:** Reddit Devvit

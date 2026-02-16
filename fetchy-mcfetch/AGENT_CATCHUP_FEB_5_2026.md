@@ -2,7 +2,7 @@
 
 **Status:** Save state. Deploy completed; app is in a known-good state for the next session.
 
-**Deployed version:** **0.0.251**
+**Deployed version:** **0.0.280**
 
 ---
 
@@ -27,6 +27,16 @@
 - After a successful submit, the **form is hidden** and replaced by a **“NOMINATE ANOTHER”** button above the list. Clicking it shows the entry form again.
 - List heading: **“Other Nominees in [Award Name]”** (not “Current Nominees”).
 - **MORE** button (small text, to the right of the heading): shows 5 more nominees per click (initial 5, then 10, 15, …). Hidden when all are visible.
+
+### Nominee list visibility (Option B – global, Feb 2026)
+- The “Other Nominees” section is shown when **either** the user just submitted in this session (`hasSubmitted`) **or** they have submitted at least one nomination in this event (`nominationCount.used > 0`). So once they’ve submitted anywhere, the list stays visible for every award and when they return (e.g. after award is closed). Implemented as a single derived `showNomineeList` in `App.tsx`; **Option A (per-award)** can be added by introducing `GET /api/user/has-nominated?category=...` and using `hasNominatedForCategory` (see comment above `showNomineeList`). We do **not** set `hasSubmitted` to false when switching award (selectCategory or related-award button). When `showNomineeList` is true on submit view, we load nominations for the current category so the list has data when returning.
+
+### Seconding (optimistic update, bounce, no scroll reset)
+- On successful “Second” (nominate too) we **do not** call `loadNominations()` or scroll; we optimistically update the matching card’s `currentUserHasSeconded` in state. The Second button gets a short **bounce** animation via class `just-seconded` and `justSecondedKey` (cleared after 350ms). Toast: “YOU HAVE SECONDED THIS NOMINATION!”. This avoids the list jumping or refetching and losing scroll position.
+
+### Toasts
+- **Positioning:** Fixed at top, centered with `left`/`right` + margin (no `transform: translateX(-50%)`) so the toast is not clipped on mobile WebView. See `.toast` in `index.css`.
+- **Animation:** Fade in (`toastFadeIn`) and fade out (`toastFadeOut` when `toastLeaving`); leave animation runs before unmount. `showToast` uses two timeouts (5s then 300ms) to set leaving then clear.
 
 ### Earlier session (still relevant)
 - Scroll to top on enter/load; footer (RULES, LEGAL, HELP, ©2026); award headers from event-config; subreddit URLs as “supporting community”; unique nominators via `getNominatorUsername(req)`; export/resolve workflow and `scripts/add-resolved-thing.js` (OpenAI/Gemini, per-category constraints).
@@ -68,4 +78,4 @@
 
 ---
 
-**Save state:** Deploy 0.0.251. Next agent can continue from here.
+**Save state:** Deploy 0.0.280. Documentation updated for nominee list visibility (Option B), seconding (optimistic + bounce), and toasts. **Next:** minor UI changes on the main page.

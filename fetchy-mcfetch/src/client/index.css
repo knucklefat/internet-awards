@@ -50,17 +50,26 @@ body {
 }
 
 /* ===== TOAST NOTIFICATIONS ===== */
+/* Use left/right + margin so we never rely on transform for position (avoids WebView clipping on mobile) */
 .toast {
   position: fixed;
   top: 20px;
-  right: 20px;
+  left: 16px;
+  right: 16px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0 auto;
   padding: 16px 24px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  animation: slideInRight 0.3s ease-out;
+  animation: toastFadeIn 0.25s ease-out;
   z-index: 1000;
-  max-width: 400px;
   font-weight: 500;
+  box-sizing: border-box;
+}
+
+.toast.toast-leave {
+  animation: toastFadeOut 0.3s ease-out forwards;
 }
 
 .toast-success {
@@ -78,14 +87,25 @@ body {
   color: white;
 }
 
-@keyframes slideInRight {
+@keyframes toastFadeIn {
   from {
-    transform: translateX(100%);
     opacity: 0;
+    transform: translateY(-8px);
   }
   to {
-    transform: translateX(0);
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
   }
 }
 
@@ -215,14 +235,32 @@ body {
   font-weight: 600;
   color: #dbdbdb;
   margin-bottom: 30px;
-  font-size: 1rem;
-  line-height: .9;
+  font-size: 1.2rem;
+  line-height: 1.1;
   padding: 16px 0 6px 0;
 }
 
+/* Line break only on mobile; hidden on wider screens so subtitle stays one line */
+@media (min-width: 768px) {
+  .main-subtitle-mobile-br {
+    display: none;
+  }
+}
+
 .award-group-section {
-  margin-bottom: 30px;
+  margin-bottom: 0; /* spacing between sections comes from + .award-group-section below */
   padding-bottom: 8px; /* extra space between award rows on mobile */
+}
+
+.award-group-section:last-child {
+  margin-bottom: 30px; /* space before footer */
+}
+
+/* 1px divider between categories: 12px + 1px + 12px = 25px between award row bottom and next header top */
+.award-group-section + .award-group-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #232434;
 }
 
 .award-group-header {
@@ -265,12 +303,29 @@ body {
   color: #ffffff;
   margin: 8px 0 0 0;
   letter-spacing: 0px; 
-  padding-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+/* Full-width divider above first category: "24 AWARDS ACROSS 6 CATEGORIES" with double lines */
+.award-count-divider {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  box-sizing: border-box;
+  border-top: 3px double #6b7280;
+  border-bottom: 3px double #6b7280;
+  padding: 14px 20px;
+  margin-top: 24px;
+  margin-bottom: 0;
+}
+
+.award-count-divider .award-group-break-title {
+  margin: 0;
+  padding: 0;
 }
 
 .award-group-break-title {
   text-align: center;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #6b7280;
   letter-spacing: 0.15em;
@@ -283,7 +338,8 @@ body {
 .award-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 20px; /* 12px + 8px between rows only; top/bottom of group unchanged */
   padding-top: 24px;
   margin-top: -4px;
 }
@@ -318,6 +374,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  filter: saturate(0.3);
+  transition: filter 0.3s ease;
+}
+
+.award-card:hover .award-gradient-section {
+  filter: saturate(1);
 }
 
 .award-gradient-section::after {
@@ -361,17 +423,17 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* 1px white stroke at 50% opacity on the outside */
-  filter: drop-shadow(-1px -1px 0 rgba(255,255,255,0.5)) drop-shadow(1px -1px 0 rgba(255,255,255,0.5))
-          drop-shadow(1px 1px 0 rgba(255,255,255,0.5)) drop-shadow(-1px 1px 0 rgba(255,255,255,0.5))
-          drop-shadow(0 -1px 0 rgba(255,255,255,0.5)) drop-shadow(0 1px 0 rgba(255,255,255,0.5))
-          drop-shadow(1px 0 0 rgba(255,255,255,0.5)) drop-shadow(-1px 0 0 rgba(255,255,255,0.5));
+  /* 1px black stroke on the outside */
+  filter: drop-shadow(-1px -1px 0 #000) drop-shadow(1px -1px 0 #000)
+          drop-shadow(1px 1px 0 #000) drop-shadow(-1px 1px 0 #000)
+          drop-shadow(0 -1px 0 #000) drop-shadow(0 1px 0 #000)
+          drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000);
 }
 
 .award-icon > span {
-  /* 1px white stroke at 50% opacity on the outside via text-shadow */
-  text-shadow: -1px -1px 0 rgba(255,255,255,0.5), 1px -1px 0 rgba(255,255,255,0.5), 1px 1px 0 rgba(255,255,255,0.5), -1px 1px 0 rgba(255,255,255,0.5),
-               0 -1px 0 rgba(255,255,255,0.5), 0 1px 0 rgba(255,255,255,0.5), 1px 0 0 rgba(255,255,255,0.5), -1px 0 0 rgba(255,255,255,0.5);
+  /* 1px black stroke on the outside via text-shadow */
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, 1px 1px 0 #000, -1px 1px 0 #000,
+               0 -1px 0 #000, 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000;
 }
 
 .award-details-section {
@@ -384,7 +446,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* top-align so all titles start at same position */
   position: relative;
   overflow: visible;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -992,67 +1054,82 @@ body {
   box-shadow: 0 0 0 2px rgba(0, 226, 183, 0.4);
 }
 
-/* ===== NOMINATION CARDS ===== */
+/* ===== NOMINATION CARDS (Reddit-like layout) ===== */
 .nominations-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
 .nomination-card {
-  background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%);
-  border: 2px solid #333;
-  border-radius: 8px;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: 70px 1fr auto;
-  grid-template-rows: auto 1fr auto;
-  gap: 10px 12px;
-  transition: all 0.2s ease;
-  min-height: 74px;
-  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background 0.2s ease;
+}
+
+.nomination-card:last-child {
+  border-bottom: none;
 }
 
 .nomination-card:hover {
-  border-color: #00E2B7;
-  box-shadow: 0 4px 16px rgba(0, 226, 183, 0.1);
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.nomination-thumbnail {
-  grid-column: 1;
-  grid-row: 1 / 4;
-  width: 70px;
-  height: 70px;
-  object-fit: cover;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  align-self: center;
+/* Two-column body: content left, thumbnail right (Reddit post layout) */
+.nomination-card-body {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: flex-start;
 }
 
-.nomination-thumbnail:hover {
-  opacity: 0.8;
-}
-
-.nomination-content {
-  grid-column: 2;
-  grid-row: 1 / 4;
+.nomination-card-content {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  min-width: 0;
-  padding-left: 4px;
+  gap: 4px;
+}
+
+/* Header row: category pill + "Nominee" label */
+.nomination-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.category-pill-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.category-pill-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
 }
 
 .nomination-title {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #fff;
-  line-height: 1.3;
+  line-height: 1.35;
   transition: color 0.2s ease;
-  cursor: pointer;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1060,38 +1137,26 @@ body {
   overflow: hidden;
 }
 
-.nomination-title:hover {
+.nomination-title.clickable {
+  cursor: pointer;
+}
+
+.nomination-title.clickable:hover {
   color: #00E2B7;
 }
 
-.nomination-actions {
-  grid-column: 3;
-  grid-row: 1 / 4;
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  align-items: center;
-  flex-shrink: 0;
-  align-self: stretch;
-  justify-content: flex-end;
-  padding-top: 8px;
-}
-
-/* Thumbnail slot: always present; image or award icon */
+/* Thumbnail: top-right, fixed size (Reddit-style) */
 .nomination-thumbnail-slot {
-  grid-column: 1;
-  grid-row: 1 / 4;
-  width: 70px;
-  height: 70px;
   flex-shrink: 0;
-  align-self: center;
+  width: 72px;
+  height: 72px;
 }
 
 .nomination-thumbnail-slot .nomination-thumbnail {
-  width: 70px;
-  height: 70px;
+  width: 72px;
+  height: 72px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
   transition: opacity 0.2s ease, box-shadow 0.2s ease;
@@ -1104,9 +1169,9 @@ body {
 }
 
 .nomination-thumbnail-award-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 6px;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
@@ -1121,14 +1186,25 @@ body {
 }
 
 .nomination-award-icon-img {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
 }
 
 .nomination-award-icon-emoji {
-  font-size: 1.75rem;
+  font-size: 2rem;
   line-height: 1;
+}
+
+/* Action bar: single row (Reddit-style) */
+.nomination-card-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Second line: link title or first line of reason (smaller, grey) */
@@ -1178,16 +1254,32 @@ body {
   line-height: 1;
 }
 
-.second-nominee-plus {
-  font-weight: 700;
+.second-nominee-text {
+  font-weight: 500;
 }
 
-.second-nominee-button.has-votes .second-nominee-plus {
+.second-nominee-button.has-votes .second-nominee-text {
   color: #ff4500;
 }
 
-.second-nominee-text {
-  font-weight: 500;
+/* Bounce when user just seconded (no view reset) */
+.second-nominee-button.just-seconded {
+  animation: secondedBounce 0.35s ease-out;
+}
+
+@keyframes secondedBounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-4px) scale(1.05);
+  }
+  70% {
+    transform: translateY(1px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Circular link-only button — bottom-right of card */
@@ -1294,7 +1386,7 @@ body {
 .related-award-button {
   background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%);
   border: 2px solid #333;
-  border-radius: 64px;
+  border-radius: 16px;
   padding: 16px 12px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1338,26 +1430,33 @@ body {
 
 @media (max-width: 768px) {
   .related-awards-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
 
   .related-award-button {
-    padding: 12px 8px;
+    padding: 8px 6px;
+    min-width: 0;
   }
 
   .related-award-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .related-icon-img {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
   }
 
   .related-award-name {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }
 
@@ -1366,8 +1465,6 @@ body {
 }
 
 .nominee-label {
-  margin-left: auto;
-  padding-left: 8px;
   color: #888;
   font-size: 0.7rem;
   font-weight: 500;
@@ -1503,7 +1600,8 @@ body {
 
   .award-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
+    column-gap: 24px;
+    row-gap: 32px; /* 24px + 8px between rows only */
     padding-top: 28px;
   }
 
@@ -1562,7 +1660,8 @@ body {
 @media (min-width: 1280px) {
   .award-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 35px;
+    column-gap: 35px;
+    row-gap: 43px; /* 35px + 8px between rows only */
     padding-top: 32px;
   }
 
@@ -1631,43 +1730,42 @@ body {
     font-size: 1.2rem;
   }
 
-  .nomination-card {
-    grid-template-columns: 60px 1fr;
-    grid-template-rows: auto auto auto;
-    gap: 8px 10px;
-    min-height: 70px;
+  .nomination-card-body {
+    gap: 10px;
   }
 
   .nomination-thumbnail-slot {
-    grid-column: 1;
-    grid-row: 1 / 3;
+    width: 56px;
+    height: 56px;
   }
 
   .nomination-thumbnail-slot .nomination-thumbnail,
   .nomination-thumbnail {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
   }
 
   .nomination-thumbnail-award-icon {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
   }
 
-  .nomination-content {
-    grid-column: 2;
-    grid-row: 1 / 3;
+  .nomination-award-icon-img {
+    width: 28px;
+    height: 28px;
   }
 
-  .nomination-actions {
-    grid-column: 1 / 3;
-    grid-row: 3;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-end;
-    width: 100%;
-    gap: 8px;
-    padding-top: 8px;
+  .nomination-award-icon-emoji {
+    font-size: 1.5rem;
+  }
+
+  .nomination-card-actions {
+    margin-top: 8px;
+    padding-top: 6px;
+  }
+
+  .category-pill-name {
+    max-width: 120px;
   }
 
   .view-post-link,
@@ -1690,12 +1788,6 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
-  }
-
-  .toast {
-    right: 10px;
-    left: 10px;
-    max-width: none;
   }
 }
 
@@ -1855,14 +1947,14 @@ body {
 }
 
 .admin-download-icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 25px;
+  height: 25px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  font-size: 1rem;
+  font-size: 0.7rem;
   cursor: pointer;
   flex-shrink: 0;
   display: inline-flex;
@@ -1871,13 +1963,13 @@ body {
 }
 
 .admin-download-icon-btn .admin-download-icon-img {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   object-fit: contain;
 }
 
 .admin-download-icon-btn .admin-download-icon-text {
-  font-size: 1rem;
+  font-size: 0.7rem;
 }
 
 .admin-download-icon-btn:hover:not(:disabled) {
@@ -1911,6 +2003,22 @@ body {
   margin-left: auto;
 }
 
+.admin-toolbar-title-with-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-view-title-inline {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.admin-dropdown-inline {
+  min-width: 0;
+}
+
 .admin-toolbar-right-group {
   display: flex;
   gap: 12px;
@@ -1919,24 +2027,28 @@ body {
 }
 
 .admin-view-title {
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #e5e5e5;
 }
 
 .admin-dropdown {
-  padding: 8px 12px;
+  padding: 8px 20px 8px 8px;
   border-radius: 6px;
   border: 1px solid #444;
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
   font-size: 0.85rem;
-  min-width: 180px;
+  min-width: 0;
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: right;
+  text-align: left;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
 }
 
 .admin-sort-dropdown {
@@ -1948,7 +2060,7 @@ body {
   font-weight: 500;
   cursor: pointer;
   appearance: none;
-  text-align: right;
+  text-align: left;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 4px center;
@@ -2048,17 +2160,17 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 0.525rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid;
 }
 
 .admin-hide-btn .admin-hide-icon {
-  width: 18px;
-  height: 18px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
 }
 
@@ -2088,6 +2200,95 @@ body {
 
 .admin-category-award-block {
   margin-bottom: 24px;
+}
+
+.admin-categories-all-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-category-group-row {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.admin-category-group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-category-group-header:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-category-group-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-category-group-count {
+  color: #999;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.admin-expand-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #999;
+  transition: transform 0.2s ease;
+}
+
+.admin-expand-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-expand-icon.expanded {
+  transform: rotate(180deg);
+  color: #00E2B7;
+}
+
+.admin-category-group-awards {
+  padding: 0 14px 12px 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-category-group-awards .admin-award-header {
+  margin-bottom: 0;
+  padding: 6px 0;
+}
+
+.admin-category-awards-only {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-category-awards-only .admin-category-award-block {
+  margin-bottom: 0;
 }
 
 .admin-award-header {
@@ -2378,9 +2579,9 @@ body {
 }
 
 .admin-hide-btn {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.56rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid;
@@ -2626,6 +2827,26 @@ body {
     border-radius: 0;
   }
 
+  .admin-stats-cards-row {
+    gap: 6px 8px;
+    flex-wrap: nowrap;
+  }
+
+  .admin-stat-card {
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 6px 4px;
+  }
+
+  .admin-stat-number {
+    font-size: 1rem;
+  }
+
+  .admin-stat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.02em;
+  }
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -2636,8 +2857,8 @@ body {
 }
 
 /* ===== CATEGORY GROUP SECTIONS ===== */
-.award-group-section {
-  margin-bottom: 48px;
+.award-group-section:last-child {
+  margin-bottom: 48px; /* space before footer on larger screens */
 }
 
 .award-group-title {

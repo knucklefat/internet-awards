@@ -1,0 +1,14 @@
+---
+description: When the user refers to "UI performance polish", use the fetchy-mcfetch performance analysis to guide changes.
+alwaysApply: true
+---
+
+# UI performance polish
+
+When the user mentions **"UI performance polish"** (e.g. "do the UI performance polish", "apply UI performance polish", "what about UI performance polish"), treat that as a request to use the performance analysis for fetchy-mcfetch.
+
+**Action:** Read [fetchy-mcfetch/UI_PERFORMANCE_POLISH.md](fetchy-mcfetch/UI_PERFORMANCE_POLISH.md) and use it to:
+- Propose or prioritize changes (filters, shadows, hover, texture, list, splash), or
+- Implement the suggested optimizations if the user asks to apply them.
+
+The doc covers: award icon stroke/shadows, splash logo filters, category header shadows, hover box-shadows and transitions, award card texture, list virtualization, and splash background animation. Principle: reduce expensive `filter` and heavy `box-shadow`/`text-shadow` on repeated or always-visible elements.

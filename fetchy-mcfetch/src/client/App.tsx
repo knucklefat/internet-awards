@@ -64,7 +64,6 @@ export const App = () => {
 
   // Load event configuration and check moderator status on mount
   useEffect(() => {
-    console.log('[CLIENT] App mounted - loading configuration and checking moderator status');
     loadEventConfig();
     checkModeratorStatus();
   }, []);
@@ -155,32 +154,15 @@ export const App = () => {
 
   const checkModeratorStatus = async () => {
     try {
-      console.log('[CLIENT] Starting moderator check...');
       const response = await fetch('/api/user/is-moderator');
-      console.log('[CLIENT] Moderator check response:', response.status, response.statusText);
-      
       const result = await response.json();
-      console.log('[CLIENT] Moderator check result:', result);
-      
-      // Log debug info if available
-      if (result.debug) {
-        console.log('[CLIENT] ⚠️ DEBUG INFO FROM SERVER:', result.debug);
-        console.log('[CLIENT] Username detected:', result.debug.username);
-        console.log('[CLIENT] Subreddit:', result.debug.subredditName);
-        console.log('[CLIENT] Moderators found:', result.debug.moderators);
-        console.log('[CLIENT] Your username matches?', result.debug.moderators?.includes(result.debug.username));
-      }
-      
       if (result.success) {
-        const isMod = result.isModerator || false;
-        console.log('[CLIENT] Setting isModerator to:', isMod);
-        setIsModerator(isMod);
+        setIsModerator(Boolean(result.isModerator));
       } else {
-        console.log('[CLIENT] Moderator check failed, setting to false');
         setIsModerator(false);
       }
     } catch (error) {
-      console.error('[CLIENT] Error checking moderator status:', error);
+      console.error('[CLIENT] Moderator check failed:', error);
       setIsModerator(false);
     }
   };
@@ -1077,7 +1059,6 @@ export const App = () => {
           type="button"
           className="admin-trigger-button"
           onClick={() => {
-            console.log('[CLIENT] Admin panel button clicked');
             setShowAdminPanel(true);
           }}
           title="Admin Panel (or type 'admin' anywhere)"
