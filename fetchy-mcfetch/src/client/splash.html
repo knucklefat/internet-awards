@@ -28,11 +28,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 10px;
         color: #000000;
         animation: panBackground 30s linear forwards;
       }
 
+ 
       @keyframes panBackground {
         from {
           background-position: 0% center;
@@ -108,23 +109,30 @@
       }
 
       .description {
-        font-size: 1.2rem;
+        font-size: clamp(1.1rem, 2.4vw, 1.2rem);
         margin-bottom: 30px;
+        padding: 0 16px;
         color: #d5d5d5;
         opacity: 0.95;
         line-height: 1.2;
         font-weight: 200;
+        white-space: nowrap;
       }
 
       #rotating-word {
-        color: #ffffff;
-        font-weight: 500;
-        transition: opacity 0.7s ease;
         display: inline-block;
         width: 100px;
         text-align: center;
         border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         padding-bottom: 2px;
+      }
+
+      #rotating-word .rotating-text {
+        color: #ffffff;
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: 0px;
+        transition: opacity 0.7s ease;
       }
 
       #launch-button {
@@ -159,7 +167,12 @@
       @media (max-width: 600px) {
         h1 {
           font-size: 20pt;
-          padding: 0 5px;
+          padding: 0 10px;
+        }
+
+        .description {
+          font-size: clamp(0.8rem, 2.5vw, 1rem);
+          padding: 0 12px;
         }
       }
 
@@ -170,7 +183,8 @@
         }
 
         .description {
-          font-size: 1rem;
+          font-size: clamp(0.75rem, 2.8vw, 0.95rem);
+          padding: 0 10px;
         }
 
         #launch-button {
@@ -199,7 +213,7 @@
         <img src="/default-icon.png?v=20260206" alt="The Internet Awards" />
       </div>
       <h1>Who will win the internet?</h1>
-      <p class="description">Submit nominations for your favorite <span id="rotating-word">Moment</span> of the year</p>
+      <p class="description">Submit nominations for your favorite <span id="rotating-word"><span class="rotating-text">Moment</span></span> of the year</p>
       <button id="launch-button">Submit Nominee</button>
     </div>
 

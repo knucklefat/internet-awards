@@ -59,13 +59,16 @@ body {
   width: max-content;
   max-width: calc(100% - 32px);
   margin: 0 auto;
-  padding: 16px 24px;
-  border-radius: 8px;
+  padding: 8px 24px;
+  border-radius: 28px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   animation: toastFadeIn 0.25s ease-out;
   z-index: 1000;
+  font-size:0.9rem;
   font-weight: 500;
   box-sizing: border-box;
+  transform: scale(0.7);
+  transform-origin: top center;
 }
 
 .toast.toast-leave {
@@ -90,22 +93,22 @@ body {
 @keyframes toastFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-8px) scale(0.7);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(0.7);
   }
 }
 
 @keyframes toastFadeOut {
   from {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(0.7);
   }
   to {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-8px) scale(0.7);
   }
 }
 
@@ -174,16 +177,23 @@ body {
   margin-bottom: 8px;
 }
 
-.main-footer-links a {
+.main-footer-links a,
+.main-footer-links .footer-link {
   color: #9ca3af;
   font-size: 0.8rem;
   font-weight: 500;
   text-decoration: none;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
 
-.main-footer-links a:hover {
+.main-footer-links a:hover,
+.main-footer-links .footer-link:hover {
   color: #ffffff;
   text-decoration: underline;
 }
@@ -548,6 +558,25 @@ body {
   transform: translateX(-4px);
 }
 
+.form-top-nav .back-button-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+}
+
+.form-top-nav .back-button-link:hover {
+  background: none;
+  transform: none;
+  color: #fff;
+  text-decoration: underline;
+}
+
 /* ===== SUBMIT FORM ===== */
 .submit-form {
   max-width: 600px;
@@ -585,7 +614,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 5rem; /* 1.5x of 3.5rem */
-  font-weight: 900;
+  font-weight: 800;
   color: #ffffff;
   text-align: center;
   width: 90%;
@@ -596,14 +625,19 @@ body {
   padding: 0 24px;
 }
 
+/* Long award names (>20 chars): 85% font size so they fit on one line */
+.award-header-title.award-header-title-long {
+  font-size: 4.25rem; /* 85% of 5rem */
+}
+
 /* Left-aligned header text */
 .award-header-title.align-left {
   left: 0;
   transform: translateY(-50%);
   text-align: left;
-  padding-left: 52px;
+  padding-left: 47 px;
   width: auto;
-  max-width: 70%;
+  max-width:80%;
 }
 
 /* Right-aligned header text */
@@ -621,25 +655,33 @@ body {
 /* Responsive font sizes for award header */
 @media (max-width: 768px) {
   .award-header-title {
-    font-size: 3rem; /* 1.5x of 2rem */
+    font-size: 2.75rem; /* 1.5x of 2rem */
+  }
+  
+  .award-header-title.award-header-title-long {
+    font-size: 2.3375rem; /* 85% of 2.75rem */
   }
   
   .award-header-title.align-left,
   .award-header-title.align-right {
     max-width: 80%;
-    padding-left: 30px;
-    padding-right: 30px;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 
 @media (max-width: 480px) {
   .award-header-title {
-    font-size: 1.65rem; /* 1.5x of 1.1rem */
+    font-size: 1.5rem; /* 1.5x of 1.1rem */
+  }
+  
+  .award-header-title.award-header-title-long {
+    font-size: 1.275rem; /* 85% of 1.5rem */
   }
   
   .award-header-title.align-left,
   .award-header-title.align-right {
-    max-width: 85%;
+    max-width: 90%;
     padding-left: 20px;
     padding-right: 20px;
   }
@@ -666,7 +708,7 @@ body {
 
 .award-description-text {
   color: #ffffff;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight:200px;
 }
 
@@ -679,6 +721,11 @@ body {
   text-transform: uppercase;
   color: #00E2B7;
   text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .eligibility-link:hover {
@@ -902,7 +949,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .list-header h3 {
@@ -927,8 +974,8 @@ body {
 
 .action-buttons {
   display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 14px;
+  margin-bottom: 4px;
 }
 
 .export-button {
@@ -1033,8 +1080,8 @@ body {
 }
 
 .nominees-refresh-icon {
-  width: 22px;
-  height: 22px;
+  width: 17.6px;
+  height: 17.6px;
   object-fit: contain;
 }
 
@@ -1093,28 +1140,48 @@ body {
 
 /* Bottom margin between cards reduced 50% (gap between action row and next nominee) */
 .nomination-card {
+  position: relative;
   padding: 6px 0;
+  margin-bottom: 2px;
   transition: background 0.2s ease;
 }
 
-/* Double stroke color matches breakline between nominee details and action row */
+.nomination-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  background: transparent;
+  z-index: -1;
+  pointer-events: none;
+  transition: background 0.2s ease;
+}
+
+/* Single stroke between cards: white at 15% opacity */
 .nomination-card:first-child {
-  border-top: 3px double rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   padding-top: 7px;
   margin-top: 1px;
 }
 
 .nomination-card:last-child {
-  border-bottom: 3px double rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .nomination-card:not(:first-child) {
-  border-top: 3px double rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   margin-top: 1px;
   padding-top: 7px;
 }
 
 .nomination-card:hover {
+  background: transparent;
+}
+
+.nomination-card:hover::before {
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -1174,6 +1241,7 @@ body {
   line-height: 1.35;
   transition: color 0.2s ease;
   margin: 0;
+  padding-top: 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1251,8 +1319,7 @@ body {
   gap: 8px;
   align-items: center;
   margin-top: 2px;
-  padding: 8px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 0 4.5px 0;
 }
 
 .nomination-card-actions .nominee-report-button {
@@ -1900,7 +1967,7 @@ body {
 
   .nomination-card-actions {
     margin-top: 8px;
-    padding: 6px 0;
+    padding: 6px 0 4.5px 0;
   }
 
   .category-pill-name {
@@ -2318,15 +2385,15 @@ body {
 }
 
 .admin-hide-btn.hide {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #f87171;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
 }
 
 .admin-hide-btn.unhide {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.5);
-  color: #22c55e;
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
 }
 
 .admin-hide-btn:disabled {
@@ -2413,7 +2480,7 @@ body {
 }
 
 .admin-category-awards {
-  padding: 0 14px 12px 52px;
+  padding: 0 14px 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2422,6 +2489,10 @@ body {
 .admin-category-awards .admin-award-header {
   margin-bottom: 0;
   padding: 6px 0;
+}
+
+.admin-category-awards .admin-award-name {
+  font-weight: 400;
 }
 
 .admin-category-awards-only {
@@ -2459,7 +2530,7 @@ body {
 .admin-award-name {
   font-weight: 700;
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -2732,23 +2803,23 @@ body {
 }
 
 .admin-hide-btn.hide {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+.admin-hide-btn.hide:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-hide-btn.unhide {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.5);
   color: #f87171;
 }
 
-.admin-hide-btn.hide:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.25);
-}
-
-.admin-hide-btn.unhide {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.5);
-  color: #22c55e;
-}
-
 .admin-hide-btn.unhide:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.25);
+  background: rgba(239, 68, 68, 0.25);
 }
 
 .admin-hide-btn:disabled {

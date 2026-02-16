@@ -26,6 +26,7 @@ export const AdminPanel = ({ onClose }: Props) => {
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
   const [hideUnhideLoading, setHideUnhideLoading] = useState<string | null>(null);
+  const [unflagLoading, setUnflagLoading] = useState<string | null>(null);
   const [banUnbanLoading, setBanUnbanLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -162,6 +163,25 @@ export const AdminPanel = ({ onClose }: Props) => {
       alert('Failed to unhide');
     } finally {
       setHideUnhideLoading(null);
+    }
+  };
+
+  const handleUnflag = async (memberKey: string) => {
+    if (!memberKey || unflagLoading) return;
+    setUnflagLoading(memberKey);
+    try {
+      const res = await fetch('/api/unflag-nomination', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberKey }),
+      });
+      const result = await res.json();
+      if (result.success) setNominations((prev) => prev.map((n) => (n.memberKey === memberKey ? { ...n, flagged: false } : n)));
+      else alert(result.error || 'Failed to unflag');
+    } catch (e) {
+      alert('Failed to unflag');
+    } finally {
+      setUnflagLoading(null);
     }
   };
 
@@ -380,6 +400,11 @@ export const AdminPanel = ({ onClose }: Props) => {
                           {nom.flagged && <div className="admin-nominee-sub admin-flagged-tag">Flagged</div>}
                         </div>
                         <div className="admin-nominee-action">
+                          {nom.flagged && (
+                            <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnflag(nom.memberKey)} disabled={unflagLoading === nom.memberKey} title="Unflag (show in public again)">
+                              Unflag
+                            </button>
+                          )}
                           {nom.hidden ? (
                             <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnhide(nom.memberKey)} disabled={hideUnhideLoading === nom.memberKey} title="Show">
                               <svg className="admin-hide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -444,7 +469,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                                 </span>
                                 <span className="admin-award-name">{award.name}</span>
                                 <button type="button" className="admin-see-award-btn" onClick={() => goToAward(award.id)}>
-                                  SEE AWARD
+                                  VIEW
                                 </button>
                               </div>
                             ))}
@@ -464,7 +489,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                         </span>
                         <span className="admin-award-name">{award.name}</span>
                         <button type="button" className="admin-see-award-btn" onClick={() => goToAward(award.id)}>
-                          SEE AWARD
+                          VIEW
                         </button>
                       </div>
                     </div>
@@ -525,6 +550,11 @@ export const AdminPanel = ({ onClose }: Props) => {
                               {nom.flagged && <div className="admin-nominee-sub admin-flagged-tag">Flagged</div>}
                             </div>
                             <div className="admin-nominee-action">
+                              {nom.flagged && (
+                                <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnflag(nom.memberKey)} disabled={unflagLoading === nom.memberKey} title="Unflag (show in public again)">
+                                  Unflag
+                                </button>
+                              )}
                               {nom.hidden ? (
                                 <button type="button" className="admin-hide-btn unhide" onClick={() => handleUnhide(nom.memberKey)} disabled={hideUnhideLoading === nom.memberKey} title="Show">
                                   <svg className="admin-hide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>

@@ -831,7 +831,7 @@ router.get('/api/nominations', async (req, res): Promise<void> => {
     const hiddenHash = await redis.hGetAll(HIDDEN_NOMINATIONS_KEY);
     const hiddenSet = new Set(Object.keys(hiddenHash));
 
-    const flaggedHash = modRequestingHidden ? await redis.hGetAll(FLAGGED_NOMINATIONS_KEY) : {};
+    const flaggedHash = await redis.hGetAll(FLAGGED_NOMINATIONS_KEY);
     const flaggedSet = new Set(Object.keys(flaggedHash));
 
     // Which nomination memberKeys has the current user seconded?
@@ -841,7 +841,7 @@ router.get('/api/nominations', async (req, res): Promise<void> => {
     const nominations: Nomination[] = [];
     for (const memberKey of memberKeys) {
       const mem = memberKey.member;
-      if (!modRequestingHidden && hiddenSet.has(mem)) continue;
+      if (!modRequestingHidden && (hiddenSet.has(mem) || flaggedSet.has(mem))) continue;
 
       const nominationKey = `nomination:${mem}`;
       const data = await redis.hGetAll(nominationKey);
@@ -873,13 +873,17 @@ router.get('/api/nominations', async (req, res): Promise<void> => {
 });
 
 /**
- * Flag a nomination (report). One flag per user per nomination; idempotent.
+ * Flag a nomination. Mod only. Adds to global flagged set; flagged nominations are hidden from public lists.
  */
 router.post('/api/flag-nomination', async (req, res): Promise<void> => {
   try {
+    if (!(await isModeratorUser(req))) {
+      res.status(403).json({ error: 'Moderator only', success: false });
+      return;
+    }
     const userId = getNominatorUsername(req);
     if (!userId || userId === 'anonymous') {
-      res.status(401).json({ error: 'Sign in to report', success: false });
+      res.status(401).json({ error: 'Sign in to flag', success: false });
       return;
     }
     const { memberKey } = req.body;
@@ -900,7 +904,39 @@ router.post('/api/flag-nomination', async (req, res): Promise<void> => {
   } catch (error) {
     console.error('Error flagging nomination:', error);
     res.status(500).json({
-      error: getErrorMessage(error) || 'Failed to report',
+      error: getErrorMessage(error) || 'Failed to flag',
+      success: false,
+    });
+  }
+});
+
+/**
+ * Unflag a nomination. Mod only. Removes from global flagged set so it appears in public lists again.
+ */
+router.post('/api/unflag-nomination', async (req, res): Promise<void> => {
+  try {
+    if (!(await isModeratorUser(req))) {
+      res.status(403).json({ error: 'Moderator only', success: false });
+      return;
+    }
+    const userId = getNominatorUsername(req);
+    if (!userId || userId === 'anonymous') {
+      res.status(401).json({ error: 'Sign in to unflag', success: false });
+      return;
+    }
+    const { memberKey } = req.body;
+    if (typeof memberKey !== 'string' || !memberKey.trim()) {
+      res.status(400).json({ error: 'memberKey required', success: false });
+      return;
+    }
+    const key = memberKey.trim();
+    await redis.hDel(FLAGGED_NOMINATIONS_KEY, [key]);
+    await redis.hDel(`user_flagged:${userId}`, [key]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error unflagging nomination:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to unflag',
       success: false,
     });
   }

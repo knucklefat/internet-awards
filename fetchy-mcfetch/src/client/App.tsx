@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { navigateTo } from '@devvit/web/client';
 import { AdminPanel } from './components/AdminPanel';
 import type { Award, Category, Nomination, EventStats } from '../shared/types/event';
 
@@ -171,7 +172,8 @@ export const App = () => {
   const loadNominations = async (category?: string) => {
     try {
       setLoading(true);
-      const url = category ? `/api/nominations?category=${category}` : '/api/nominations';
+      const base = category ? `/api/nominations?category=${category}` : '/api/nominations';
+      const url = isModerator ? `${base}${base.includes('?') ? '&' : '?'}includeHidden=1` : base;
       const response = await fetch(url);
       const result = await response.json();
       
@@ -373,23 +375,41 @@ export const App = () => {
   const getNominationSecondKey = (nom: Nomination): string =>
     `${nom.category}:${nom.thingSlug || getSecondPostUrl(nom) || ''}`;
 
-  const handleFlagNomination = async (memberKey: string | undefined) => {
-    if (!memberKey?.trim()) return;
+  const handleToggleFlag = async (nom: Nomination) => {
+    const memberKey = nom.memberKey?.trim();
+    if (!memberKey) return;
+    const isFlagged = nom.flagged || reportedMemberKeys.has(memberKey);
+    const endpoint = isFlagged ? '/api/unflag-nomination' : '/api/flag-nomination';
     try {
-      const res = await fetch('/api/flag-nomination', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberKey: memberKey.trim() }),
+        body: JSON.stringify({ memberKey }),
       });
       const result = await res.json();
       if (result.success) {
-        setReportedMemberKeys((prev) => new Set(prev).add(memberKey.trim()));
-        showToast(result.alreadyFlagged ? 'Already reported' : 'Reported', 'success');
+        if (isFlagged) {
+          setReportedMemberKeys((prev) => {
+            const next = new Set(prev);
+            next.delete(memberKey);
+            return next;
+          });
+          setNominations((prev) =>
+            prev.map((n) => (n.memberKey === memberKey ? { ...n, flagged: false } : n))
+          );
+          showToast('Unflagged', 'success');
+        } else {
+          setReportedMemberKeys((prev) => new Set(prev).add(memberKey));
+          setNominations((prev) =>
+            prev.map((n) => (n.memberKey === memberKey ? { ...n, flagged: true } : n))
+          );
+          showToast('Flagged', 'error');
+        }
       } else {
-        showToast(result.error || 'Failed to report', 'error');
+        showToast(result.error || (isFlagged ? 'Failed to unflag' : 'Failed to flag'), 'error');
       }
     } catch {
-      showToast('Failed to report', 'error');
+      showToast(isFlagged ? 'Failed to unflag' : 'Failed to flag', 'error');
     }
   };
 
@@ -571,9 +591,9 @@ export const App = () => {
 
         <footer className="main-footer">
           <div className="main-footer-links">
-            <a href="https://www.reddit.com/help/contentpolicy/" target="_blank" rel="noopener noreferrer">RULES</a>
-            <a href="https://www.redditinc.com/policies" target="_blank" rel="noopener noreferrer">LEGAL</a>
-            <a href="https://www.reddit.com/help/" target="_blank" rel="noopener noreferrer">HELP</a>
+            <button type="button" className="footer-link" onClick={() => navigateTo('https://www.reddit.com/help/contentpolicy/')}>RULES</button>
+            <button type="button" className="footer-link" onClick={() => navigateTo('https://www.redditinc.com/policies')}>LEGAL</button>
+            <button type="button" className="footer-link" onClick={() => navigateTo('https://www.reddit.com/help/')}>HELP</button>
           </div>
           <div className="main-footer-copy">©2026 Reddit, Inc.</div>
         </footer>
@@ -590,8 +610,8 @@ export const App = () => {
     return (
       <div className={`submit-form ${isTransitioning ? 'view-transitioning' : ''}`}>
         <div className="form-top-nav">
-          <button className="back-button" onClick={goBack}>
-            ← Back to Awards
+          <button type="button" className="back-button back-button-link" onClick={goBack}>
+            ← BACK TO AWARDS
           </button>
           <div className="submit-nomination-label">AWARD NOMINEE</div>
         </div>
@@ -604,7 +624,7 @@ export const App = () => {
                 alt={selectedAward.name}
                 className="award-header-image"
               />
-              <h1 className={`award-header-title ${selectedAward.headerTextAlign ? `align-${selectedAward.headerTextAlign}` : ''}`}>
+              <h1 className={`award-header-title ${selectedAward.headerTextAlign ? `align-${selectedAward.headerTextAlign}` : ''} ${selectedAward.name.length > 20 ? 'award-header-title-long' : ''}`}>
                 {selectedAward.name}
               </h1>
             </div>
@@ -616,14 +636,13 @@ export const App = () => {
             </div>
           )}
           <p className="award-description-text">{selectedAward.description}</p>
-          <a
-            href="https://www.reddit.com/help/contentpolicy/"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
             className="eligibility-link"
+            onClick={() => navigateTo('https://www.reddit.com/help/contentpolicy/')}
           >
             ELIGIBILITY REQUIREMENTS
-          </a>
+          </button>
         </div>
 
         {(hasSubmitted && !showEntryForm) ? (
@@ -778,7 +797,7 @@ export const App = () => {
                         <div className="nomination-card-content">
                           <h4
                             className={`nomination-title ${hasLink ? 'clickable' : ''}`}
-                            onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                            onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
                           >
                             {truncateTitle(nom.title, 100)}
                           </h4>
@@ -792,7 +811,7 @@ export const App = () => {
                               src={nom.thumbnail}
                               alt=""
                               className="nomination-thumbnail"
-                              onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                              onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -804,10 +823,10 @@ export const App = () => {
                             <div
                               className="nomination-thumbnail nomination-thumbnail-award-icon"
                               style={{ display: nom.thumbnail && nom.thumbnail.trim() ? 'none' : 'block' }}
-                              onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                              onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
                               role={hasLink ? 'button' : undefined}
                               tabIndex={hasLink ? 0 : undefined}
-                              onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
+                              onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && navigateTo(linkUrl) : undefined}
                             >
                               {award.iconPath ? (
                                 <img src={award.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
@@ -859,10 +878,10 @@ export const App = () => {
                           <button
                             type="button"
                             className="nominee-report-button"
-                            onClick={(e) => { e.stopPropagation(); handleFlagNomination(nom.memberKey); }}
-                            aria-label={reportedMemberKeys.has(nom.memberKey) ? 'Reported' : 'Report'}
+                            onClick={(e) => { e.stopPropagation(); handleToggleFlag(nom); }}
+                            aria-label={nom.flagged || reportedMemberKeys.has(nom.memberKey) ? 'Flagged (tap to unflag)' : 'Flag'}
                           >
-                            <img src={reportedMemberKeys.has(nom.memberKey) ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="nominee-report-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
+                            <img src={nom.flagged || reportedMemberKeys.has(nom.memberKey) ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="nominee-report-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                             <span className="nominee-report-icon-fallback" style={{ display: 'none' }} aria-hidden>🚩</span>
                           </button>
                         )}
@@ -1000,7 +1019,7 @@ export const App = () => {
                     <div className="nomination-card-content">
                       <h4
                         className={`nomination-title ${hasLink ? 'clickable' : ''}`}
-                        onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                        onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
                       >
                         {truncateTitle(nom.title, 100)}
                       </h4>
@@ -1014,7 +1033,7 @@ export const App = () => {
                           src={nom.thumbnail}
                           alt=""
                           className="nomination-thumbnail"
-                          onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                          onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -1026,10 +1045,10 @@ export const App = () => {
                         <div
                           className="nomination-thumbnail nomination-thumbnail-award-icon"
                           style={{ display: nom.thumbnail && nom.thumbnail.trim() ? 'none' : 'block' }}
-                          onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                          onClick={() => hasLink && linkUrl && navigateTo(linkUrl)}
                           role={hasLink ? 'button' : undefined}
                           tabIndex={hasLink ? 0 : undefined}
-                          onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
+                          onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && navigateTo(linkUrl) : undefined}
                         >
                           {award.iconPath ? (
                             <img src={award.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
@@ -1080,10 +1099,10 @@ export const App = () => {
                       <button
                         type="button"
                         className="nominee-report-button"
-                        onClick={(e) => { e.stopPropagation(); handleFlagNomination(nom.memberKey); }}
-                        aria-label={reportedMemberKeys.has(nom.memberKey) ? 'Reported' : 'Report'}
+                        onClick={(e) => { e.stopPropagation(); handleToggleFlag(nom); }}
+                        aria-label={nom.flagged || reportedMemberKeys.has(nom.memberKey) ? 'Flagged (tap to unflag)' : 'Flag'}
                       >
-                        <img src={reportedMemberKeys.has(nom.memberKey) ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="nominee-report-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
+                        <img src={nom.flagged || reportedMemberKeys.has(nom.memberKey) ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="nominee-report-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                         <span className="nominee-report-icon-fallback" style={{ display: 'none' }} aria-hidden>🚩</span>
                       </button>
                     )}

@@ -29,19 +29,20 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
   let currentIndex = 0;
   const rotatingWordElement = document.getElementById('rotating-word');
+  const rotatingTextElement = rotatingWordElement?.querySelector('.rotating-text');
 
-  if (rotatingWordElement) {
+  if (rotatingTextElement) {
     function rotateWord() {
-      // Fade out
-      rotatingWordElement.style.opacity = '0';
-      
+      // Fade out only the text (line stays visible)
+      rotatingTextElement.style.opacity = '0';
+
       setTimeout(() => {
         // Change word
         currentIndex = (currentIndex + 1) % words.length;
-        rotatingWordElement.textContent = words[currentIndex];
-        
+        rotatingTextElement.textContent = words[currentIndex];
+
         // Fade in
-        rotatingWordElement.style.opacity = '1';
+        rotatingTextElement.style.opacity = '1';
       }, 700);
     }
 
