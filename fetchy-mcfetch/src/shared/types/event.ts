@@ -14,6 +14,8 @@ export interface Award {
   description: string;
   /** Short instruction for LLM/resolve script: what to return (e.g. "Game Title", "Name of a subreddit") */
   resolutionGuidance?: string;
+  /** Placeholder for the nominee name/description input on the nomination form (e.g. "e.g. Elden Ring, a game title") */
+  nomineeNamePlaceholder?: string;
   bannerImage?: string;
   headerImage?: string; // Award header background for nomination page (1200x300px)
   headerTextAlign?: 'left' | 'right'; // Text alignment for header title (default: center)
@@ -72,6 +74,8 @@ export interface Nomination {
   memberKey?: string;
   /** True if mod hid this from public lists; only in admin responses */
   hidden?: boolean;
+  /** True if at least one user has flagged this nomination; only in admin responses */
+  flagged?: boolean;
 }
 
 export interface EventStats {

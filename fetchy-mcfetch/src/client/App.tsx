@@ -55,9 +55,10 @@ export const App = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
-  const [nominationCount, setNominationCount] = useState<{ used: number; limit: number } | null>(null);
+  const [nominationCount, setNominationCount] = useState<{ used: number; limit: number; unlimited?: boolean } | null>(null);
   const [showEntryForm, setShowEntryForm] = useState(true);
   const [nomineesStartIndex, setNomineesStartIndex] = useState(0);
+  const [reportedMemberKeys, setReportedMemberKeys] = useState<Set<string>>(new Set());
 
   /** When true, show "Other Nominees" on submit screen. Option B (global): once user has submitted any nomination in this event. For Option A (per-award), replace with: hasSubmitted || hasNominatedForCategory and set hasNominatedForCategory from GET /api/user/has-nominated?category=... */
   const showNomineeList = hasSubmitted || (nominationCount != null && nominationCount.used > 0);
@@ -128,7 +129,7 @@ export const App = () => {
       const response = await fetch('/api/user/nomination-count');
       const data = await response.json();
       if (data?.success && typeof data.used === 'number' && typeof data.limit === 'number') {
-        setNominationCount({ used: data.used, limit: data.limit });
+        setNominationCount({ used: data.used, limit: data.limit, unlimited: data.unlimited === true });
       }
     } catch {
       setNominationCount(null);
@@ -293,8 +294,9 @@ export const App = () => {
   };
 
   const handleDisabledButtonInteraction = () => {
-    if (nominationCount != null && nominationCount.used >= nominationCount.limit) {
-      showToast(`You've reached the limit of ${nominationCount.limit} nominations.`, 'error');
+    const atLimit = nominationCount != null && !nominationCount.unlimited && nominationCount.used >= nominationCount.limit;
+    if (atLimit) {
+      showToast(`You've reached the limit of ${nominationCount!.limit} nominations.`, 'error');
       return;
     }
     if (!nominationTitle.trim()) {
@@ -370,6 +372,26 @@ export const App = () => {
   /** Unique key for a nomination for second/optimistic-update matching. */
   const getNominationSecondKey = (nom: Nomination): string =>
     `${nom.category}:${nom.thingSlug || getSecondPostUrl(nom) || ''}`;
+
+  const handleFlagNomination = async (memberKey: string | undefined) => {
+    if (!memberKey?.trim()) return;
+    try {
+      const res = await fetch('/api/flag-nomination', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberKey: memberKey.trim() }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setReportedMemberKeys((prev) => new Set(prev).add(memberKey.trim()));
+        showToast(result.alreadyFlagged ? 'Already reported' : 'Reported', 'success');
+      } else {
+        showToast(result.error || 'Failed to report', 'error');
+      }
+    } catch {
+      showToast('Failed to report', 'error');
+    }
+  };
 
   const nominateThisToo = async (
     categoryId: string,
@@ -622,7 +644,7 @@ export const App = () => {
               type="text"
               value={nominationTitle}
               onChange={(e) => setNominationTitle(e.target.value)}
-              placeholder="e.g. Elden Ring, that breakdancing cat, 6-7..."
+              placeholder={selectedAward?.nomineeNamePlaceholder ?? 'e.g. Elden Ring, that breakdancing cat, 6-7...'}
               disabled={submitting}
               required
             />
@@ -669,17 +691,17 @@ export const App = () => {
             disabled={
               submitting ||
               !nominationTitle.trim() ||
-              (nominationCount != null && nominationCount.used >= nominationCount.limit)
+              (nominationCount != null && !nominationCount.unlimited && nominationCount.used >= nominationCount.limit)
             }
             onClick={(e) => {
-              const atLimit = nominationCount != null && nominationCount.used >= nominationCount.limit;
+              const atLimit = nominationCount != null && !nominationCount.unlimited && nominationCount.used >= nominationCount.limit;
               if (submitting || !nominationTitle.trim() || atLimit) {
                 e.preventDefault();
                 handleDisabledButtonInteraction();
               }
             }}
             onMouseEnter={() => {
-              const atLimit = nominationCount != null && nominationCount.used >= nominationCount.limit;
+              const atLimit = nominationCount != null && !nominationCount.unlimited && nominationCount.used >= nominationCount.limit;
               if (submitting || !nominationTitle.trim() || atLimit) {
                 handleDisabledButtonInteraction();
               }
@@ -687,7 +709,7 @@ export const App = () => {
           >
             {submitting
               ? 'Submitting...'
-              : nominationCount != null && nominationCount.used >= nominationCount.limit
+              : nominationCount != null && !nominationCount.unlimited && nominationCount.used >= nominationCount.limit
                 ? 'Limit reached (30)'
                 : 'Submit Nomination'}
           </button>
@@ -706,7 +728,7 @@ export const App = () => {
                   {selectedAward.iconPath ? (
                     <img
                       src={selectedAward.iconPath}
-                      alt={selectedAward.name}
+                      alt=""
                       className="category-badge-icon"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -715,20 +737,19 @@ export const App = () => {
                       }}
                     />
                   ) : null}
-                  <span style={{ display: selectedAward.iconPath ? 'none' : 'inline' }}>{selectedAward.emoji}</span>{' '}
-                  {selectedAward.name}
-                  <span className="nominee-label">Other Nominees</span>
+                  <span style={{ display: selectedAward.iconPath ? 'none' : 'inline' }}>{selectedAward.emoji}</span>
+                  <span className="nominee-label">OTHER AWARD NOMINEES</span>
                 </div>
               )}
-              {nominations.length > 5 && (
-                <button
-                  type="button"
-                  className="nominees-more-button"
-                  onClick={() => setNomineesStartIndex((prev) => (prev + 5 >= nominations.length ? 0 : prev + 5))}
-                >
-                  MORE
-                </button>
-              )}
+              <button
+                type="button"
+                className="nominees-refresh-button"
+                onClick={() => setNomineesStartIndex((prev) => (prev + 5 >= nominations.length ? 0 : prev + 5))}
+                title="Cycle list"
+                aria-label="Cycle list"
+              >
+                <img src="/images/refresh.png" alt="" className="nominees-refresh-icon" />
+              </button>
             </div>
             {loading ? (
               <div className="skeleton-grid">
@@ -746,7 +767,7 @@ export const App = () => {
               <>
               <div className="nominations-grid">
                 {nominations.slice(nomineesWindowStart, nomineesWindowStart + 5).map((nom, idx) => {
-                  const category = categories.find(c => c.id === nom.category);
+                  const award = awards.find(a => a.id === nom.category);
                   const secondPostUrl = getSecondPostUrl(nom);
                   const linkUrl = (nom.url && nom.url.trim()) || secondPostUrl || undefined;
                   const hasLink = Boolean(linkUrl);
@@ -755,18 +776,6 @@ export const App = () => {
                     <div key={idx} className="nomination-card">
                       <div className="nomination-card-body">
                         <div className="nomination-card-content">
-                          {category && (
-                            <div className="nomination-card-header">
-                              <span className="category-pill">
-                                {category.iconPath ? (
-                                  <img src={category.iconPath} alt="" className="category-pill-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
-                                ) : null}
-                                <span style={{ display: category.iconPath ? 'none' : 'inline' }}>{category.emoji}</span>
-                                <span className="category-pill-name">{category.name}</span>
-                              </span>
-                              <span className="nominee-label">Nominee</span>
-                            </div>
-                          )}
                           <h4
                             className={`nomination-title ${hasLink ? 'clickable' : ''}`}
                             onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
@@ -778,25 +787,32 @@ export const App = () => {
                           )}
                         </div>
                         <div className="nomination-thumbnail-slot">
-                          {nom.thumbnail ? (
+                          {nom.thumbnail && nom.thumbnail.trim() ? (
                             <img
                               src={nom.thumbnail}
                               alt=""
                               className="nomination-thumbnail"
                               onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                              }}
                             />
-                          ) : category ? (
+                          ) : null}
+                          {award ? (
                             <div
                               className="nomination-thumbnail nomination-thumbnail-award-icon"
+                              style={{ display: nom.thumbnail && nom.thumbnail.trim() ? 'none' : 'block' }}
                               onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
                               role={hasLink ? 'button' : undefined}
                               tabIndex={hasLink ? 0 : undefined}
                               onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
                             >
-                              {category.iconPath ? (
-                                <img src={category.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
+                              {award.iconPath ? (
+                                <img src={award.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
                               ) : null}
-                              <span className="nomination-award-icon-emoji" style={{ display: category.iconPath ? 'none' : 'block' }}>{category.emoji}</span>
+                              <span className="nomination-award-icon-emoji" style={{ display: award.iconPath ? 'none' : 'block' }}>{award.emoji}</span>
                             </div>
                           ) : null}
                         </div>
@@ -823,17 +839,32 @@ export const App = () => {
                           </button>
                         )}
                         {hasLink && linkUrl && (
-                          <a
-                            href={linkUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
                             className="nominee-link-button"
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label="View post"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(linkUrl).then(
+                                () => setToast({ message: 'Link copied', type: 'success' }),
+                                () => {}
+                              );
+                            }}
+                            aria-label="Copy link"
                           >
                             <img src="/images/icons/nominee/nominee-link-icon.png" alt="" className="nominee-link-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                             <span className="nominee-link-icon-fallback" style={{ display: 'none' }} aria-hidden>🔗</span>
-                          </a>
+                          </button>
+                        )}
+                        {isModerator && nom.memberKey && (
+                          <button
+                            type="button"
+                            className="nominee-report-button"
+                            onClick={(e) => { e.stopPropagation(); handleFlagNomination(nom.memberKey); }}
+                            aria-label={reportedMemberKeys.has(nom.memberKey) ? 'Reported' : 'Report'}
+                          >
+                            <img src={reportedMemberKeys.has(nom.memberKey) ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="nominee-report-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
+                            <span className="nominee-report-icon-fallback" style={{ display: 'none' }} aria-hidden>🚩</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -841,8 +872,20 @@ export const App = () => {
                 })}
               </div>
 
+              {nominations.length > nomineesWindowStart + 5 && (
+                <div className="nominees-load-more-wrap">
+                  <button
+                    type="button"
+                    className="nominees-load-more-button"
+                    onClick={() => setNomineesStartIndex((prev) => Math.min(prev + 5, nominations.length - 5))}
+                  >
+                    LOAD MORE
+                  </button>
+                </div>
+              )}
+
               <div className="related-awards-section">
-                <h3>Nominate for other awards in this category:</h3>
+                <h3>Other Awards In This Category</h3>
                 <div className="related-awards-grid">
                   {awards
                     .filter(a => a.category === selectedAward.category && a.id !== selectedAward.id)
@@ -883,6 +926,17 @@ export const App = () => {
                     ))}
                 </div>
               </div>
+
+              <footer className="nomination-cards-footer">
+                <div className="nomination-footer-links">
+                  <span>RULES</span>
+                  <span className="footer-sep">|</span>
+                  <span>HELP</span>
+                  <span className="footer-sep">|</span>
+                  <span>REPORT</span>
+                </div>
+                <div className="nomination-footer-copyright">©2026 Reddit, Inc.</div>
+              </footer>
               </>
             )}
           </div>
@@ -932,9 +986,10 @@ export const App = () => {
         ) : nominations.length === 0 ? (
           <p className="no-data">No nominations yet.</p>
         ) : (
+          <>
           <div className="nominations-grid">
             {nominations.map((nom, idx) => {
-              const category = categories.find(c => c.id === nom.category);
+              const award = awards.find(a => a.id === nom.category);
               const secondPostUrl = getSecondPostUrl(nom);
               const linkUrl = (nom.url && nom.url.trim()) || secondPostUrl || undefined;
               const hasLink = Boolean(linkUrl);
@@ -943,18 +998,6 @@ export const App = () => {
                 <div key={idx} className="nomination-card">
                   <div className="nomination-card-body">
                     <div className="nomination-card-content">
-                      {category && (
-                        <div className="nomination-card-header">
-                          <span className="category-pill">
-                            {category.iconPath ? (
-                              <img src={category.iconPath} alt="" className="category-pill-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'inline'; }} />
-                            ) : null}
-                            <span style={{ display: category.iconPath ? 'none' : 'inline' }}>{category.emoji}</span>
-                            <span className="category-pill-name">{category.name}</span>
-                          </span>
-                          <span className="nominee-label">Nominee</span>
-                        </div>
-                      )}
                       <h4
                         className={`nomination-title ${hasLink ? 'clickable' : ''}`}
                         onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
@@ -966,25 +1009,32 @@ export const App = () => {
                       )}
                     </div>
                     <div className="nomination-thumbnail-slot">
-                      {nom.thumbnail ? (
+                      {nom.thumbnail && nom.thumbnail.trim() ? (
                         <img
                           src={nom.thumbnail}
                           alt=""
                           className="nomination-thumbnail"
                           onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'block';
+                          }}
                         />
-                      ) : category ? (
+                      ) : null}
+                      {award ? (
                         <div
                           className="nomination-thumbnail nomination-thumbnail-award-icon"
+                          style={{ display: nom.thumbnail && nom.thumbnail.trim() ? 'none' : 'block' }}
                           onClick={() => hasLink && linkUrl && window.open(linkUrl, '_blank', 'noopener,noreferrer')}
                           role={hasLink ? 'button' : undefined}
                           tabIndex={hasLink ? 0 : undefined}
                           onKeyDown={hasLink && linkUrl ? (e) => e.key === 'Enter' && window.open(linkUrl, '_blank') : undefined}
                         >
-                          {category.iconPath ? (
-                            <img src={category.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
+                          {award.iconPath ? (
+                            <img src={award.iconPath} alt="" className="nomination-award-icon-img" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling as HTMLElement; if (s) s.style.display = 'block'; }} />
                           ) : null}
-                          <span className="nomination-award-icon-emoji" style={{ display: category.iconPath ? 'none' : 'block' }}>{category.emoji}</span>
+                          <span className="nomination-award-icon-emoji" style={{ display: award.iconPath ? 'none' : 'block' }}>{award.emoji}</span>
                         </div>
                       ) : null}
                     </div>
@@ -1010,23 +1060,50 @@ export const App = () => {
                       </button>
                     )}
                     {hasLink && linkUrl && (
-                      <a
-                        href={linkUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
                         className="nominee-link-button"
-                        onClick={(e) => e.stopPropagation()}
-                        aria-label="View post"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(linkUrl).then(
+                            () => setToast({ message: 'Link copied', type: 'success' }),
+                            () => {}
+                          );
+                        }}
+                        aria-label="Copy link"
                       >
                         <img src="/images/icons/nominee/nominee-link-icon.png" alt="" className="nominee-link-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
                         <span className="nominee-link-icon-fallback" style={{ display: 'none' }} aria-hidden>🔗</span>
-                      </a>
+                      </button>
+                    )}
+                    {isModerator && nom.memberKey && (
+                      <button
+                        type="button"
+                        className="nominee-report-button"
+                        onClick={(e) => { e.stopPropagation(); handleFlagNomination(nom.memberKey); }}
+                        aria-label={reportedMemberKeys.has(nom.memberKey) ? 'Reported' : 'Report'}
+                      >
+                        <img src={reportedMemberKeys.has(nom.memberKey) ? '/images/icons/nominee/nominee-reported.png' : '/images/icons/nominee/nominee-report.png'} alt="" className="nominee-report-icon" onError={(e) => { e.currentTarget.style.display = 'none'; const s = e.currentTarget.nextElementSibling; if (s) (s as HTMLElement).style.display = 'inline'; }} />
+                        <span className="nominee-report-icon-fallback" style={{ display: 'none' }} aria-hidden>🚩</span>
+                      </button>
                     )}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          <footer className="nomination-cards-footer">
+            <div className="nomination-footer-links">
+              <span>RULES</span>
+              <span className="footer-sep">|</span>
+              <span>HELP</span>
+              <span className="footer-sep">|</span>
+              <span>REPORT</span>
+            </div>
+            <div className="nomination-footer-copyright">©2026 Reddit, Inc.</div>
+          </footer>
+          </>
         )}
       </div>
     );

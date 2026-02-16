@@ -6,7 +6,7 @@ type Props = {
 };
 
 type AdminView = 'nominations' | 'categories' | 'awards' | 'nominators';
-type NominationSort = 'newest' | 'most_seconded';
+type NominationSort = 'newest' | 'most_seconded' | 'flagged';
 type NominatorSort = 'active' | 'shadow_banned';
 
 type NominatorRow = { username: string; count: number; shadowBanned: boolean };
@@ -229,9 +229,12 @@ export const AdminPanel = ({ onClose }: Props) => {
   };
 
   const sortedNominations = useMemo(() => {
-    const list = [...nominations];
-    if (sortNominations === 'most_seconded') {
-      list.sort((a, b) => parseInt(b.voteCount || '1', 10) - parseInt(a.voteCount || '1', 10));
+    let list = [...nominations];
+    if (sortNominations === 'flagged') {
+      list = list.filter((n: any) => n.flagged);
+    }
+    if (sortNominations === 'most_seconded' || sortNominations === 'flagged') {
+      list.sort((a, b) => parseInt(b.voteCount || '0', 10) - parseInt(a.voteCount || '0', 10));
     }
     return list;
   }, [nominations, sortNominations]);
@@ -347,6 +350,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                   >
                     <option value="most_seconded">SECONDED</option>
                     <option value="newest">Newest</option>
+                    <option value="flagged">Flagged</option>
                   </select>
                 </div>
               </div>
@@ -373,6 +377,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                           <div className="admin-nominee-title">{nom.title}</div>
                           {secondLine && <div className="admin-nominee-sub">{secondLine}</div>}
                           {nom.hidden && <div className="admin-nominee-sub admin-hidden-tag">Hidden from public</div>}
+                          {nom.flagged && <div className="admin-nominee-sub admin-flagged-tag">Flagged</div>}
                         </div>
                         <div className="admin-nominee-action">
                           {nom.hidden ? (
@@ -494,6 +499,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                   >
                     <option value="most_seconded">SECONDED</option>
                     <option value="newest">Newest</option>
+                    <option value="flagged">Flagged</option>
                   </select>
                 </div>
               </div>
@@ -516,6 +522,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                               <div className="admin-nominee-title">{nom.title}</div>
                               {secondLine && <div className="admin-nominee-sub">{secondLine}</div>}
                               {nom.hidden && <div className="admin-nominee-sub admin-hidden-tag">Hidden from public</div>}
+                              {nom.flagged && <div className="admin-nominee-sub admin-flagged-tag">Flagged</div>}
                             </div>
                             <div className="admin-nominee-action">
                               {nom.hidden ? (

@@ -1,5 +1,40 @@
 # Scripts
 
+## Workflow: Clipboard → Google Sheets → Resolved Thing → Side-by-side
+
+1. **Export from the app**  
+   In the app, open Admin → export nominations. The CSV is **copied to your clipboard**.
+
+2. **Paste → clean CSV file**  
+   Open **`paste-to-csv.html`** in a browser (double-click the file or open from the repo).  
+   Paste the clipboard content into the text area and click **Download CSV**.  
+   Save the file (e.g. `nominations.csv`). This produces a proper CSV that opens correctly in Google Sheets.
+
+3. **Add “Resolved Thing”**  
+   Run the resolve script on that file (see below).  
+   Example:  
+   `node scripts/add-resolved-thing.js nominations.csv nominations-resolved.csv`  
+   Or with LLM:  
+   `node scripts/add-resolved-thing.js --llm nominations.csv nominations-resolved.csv`
+
+4. **View side-by-side in Google Sheets**  
+   - Open **nominations.csv** in Sheets (File → Open or drag the file).  
+   - Open **nominations-resolved.csv** in another tab (or File → Open again).  
+   - Place the two tabs side by side, or use a second window, to compare original and resolved “Thing” column.
+
+---
+
+## paste-to-csv.html
+
+Converts **raw pasted CSV text** (e.g. from the app’s clipboard export) into a **downloadable .csv file** that opens correctly in Google Sheets.
+
+- Open the file in any browser (no server needed).  
+- Paste your exported CSV into the text area.  
+- Click **Download CSV** to get a UTF-8 CSV with proper quoting and line endings.  
+- Open the downloaded file in Google Sheets.
+
+---
+
 ## add-resolved-thing.js (Layer 3 + optional Layer 4)
 
 Adds a **Resolved Thing** column to the exported nominations CSV so you can bucket and count popularity in a spreadsheet.
@@ -50,7 +85,7 @@ The script sends each row's **Category**, **Post Title**, **Reason**, and **URL*
 
 ### Spreadsheet use
 
-1. Export nominations from the app (Admin → Export or `/api/export-csv`).
-2. Run the script (with or without `--llm`).
-3. Open the output CSV in Excel/Sheets and pivot (or COUNTIF) by **Resolved Thing** to see popularity per thing.
+1. Export from the app (clipboard), then use **paste-to-csv.html** to download a clean CSV (see workflow above).
+2. Run this script on that file (with or without `--llm`).
+3. Open the **resolved** CSV in Excel/Sheets and pivot (or COUNTIF) by **Resolved Thing** to see popularity per thing. Open the **original** CSV in a second tab/sheet to view side-by-side.
 4. **Category** is in each row so you can filter by award when analyzing.

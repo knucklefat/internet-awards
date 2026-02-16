@@ -46,9 +46,8 @@ app.use(express.text());
 const router = express.Router();
 
 /**
- * Get nominator username from request. Prefer context; fall back to devvit-user header
- * so submissions from different entry points (e.g. menu vs post) still get the correct user.
- * Reddit sends user as t2_xxxx; we strip the prefix for consistent display and unique count.
+ * Get nominator user ID from request (context or devvit-user header).
+ * Reddit may send t2_xxxx; we strip the prefix. Used for Redis keys (user_seconded, user_nomination_count).
  */
 function getNominatorUsername(req: express.Request): string {
   const fromContext = req.context?.username;
@@ -58,12 +57,29 @@ function getNominatorUsername(req: express.Request): string {
   return stripped.length > 0 ? stripped : 'anonymous';
 }
 
+/**
+ * Get display name for the current user (for storage and UI). Uses Reddit API when available
+ * so "u/youngluck" appears instead of "u/3kh50". Falls back to ID from context/header.
+ */
+async function getNominatorDisplayName(req: express.Request): Promise<string> {
+  try {
+    const user = await reddit.getCurrentUser();
+    if (user?.username && typeof user.username === 'string' && user.username.trim().length > 0) {
+      return user.username.trim();
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  return getNominatorUsername(req);
+}
+
 const HIDDEN_NOMINATIONS_KEY = 'hidden_nominations';
 const SHADOW_BANNED_USERS_KEY = 'shadow_banned_users';
+const FLAGGED_NOMINATIONS_KEY = 'flagged_nominations';
 
 /** Returns true if the request user is a subreddit moderator. Used for admin-only actions. */
 async function isModeratorUser(req: express.Request): Promise<boolean> {
-  const username = (req.context?.username || context.username || '').trim().replace(/^t2_/, '');
+  const username = await getNominatorDisplayName(req);
   const subredditName =
     req.context?.subredditName || context.subredditName || context.subredditId;
   if (!username || !subredditName) return false;
@@ -246,7 +262,9 @@ async function ensureUserNominationCount(username: string): Promise<number> {
   let count = 0;
   for (const m of memberKeys) {
     const data = await redis.hGetAll(`nomination:${m.member}`);
-    if (data?.nominatedBy === username) count++;
+    if (!data) continue;
+    const match = data.nominatedById === username || data.nominatedBy === username;
+    if (match) count++;
   }
   await redis.set(key, count.toString());
   return count;
@@ -341,11 +359,13 @@ router.get('/api/user/is-moderator', async (req, res): Promise<void> => {
 router.get('/api/user/nomination-count', async (req, res): Promise<void> => {
   try {
     const username = getNominatorUsername(req);
+    const isMod = await isModeratorUser(req);
     const used = await ensureUserNominationCount(username);
     res.json({
       success: true,
       used,
       limit: NOMINATION_LIMIT_PER_USER,
+      unlimited: isMod,
     });
   } catch (error) {
     console.error('Error getting nomination count:', error);
@@ -478,9 +498,10 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    const nominatedBy = getNominatorUsername(req);
+    const nominatedById = getNominatorUsername(req);
+    const nominatedByDisplay = await getNominatorDisplayName(req);
 
-    if (await isShadowBanned(nominatedBy)) {
+    if (await isShadowBanned(nominatedById)) {
       res.status(403).json({
         error: 'You cannot submit or second nominations.',
         success: false,
@@ -490,7 +511,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
 
     const isMod = await isModeratorUser(req);
     if (!isMod) {
-      const currentCount = await ensureUserNominationCount(nominatedBy);
+      const currentCount = await ensureUserNominationCount(nominatedById);
       if (currentCount >= NOMINATION_LIMIT_PER_USER) {
         res.status(429).json({
           error: `You've reached the limit of ${NOMINATION_LIMIT_PER_USER} nominations.`,
@@ -517,7 +538,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
           const nominationKey = `nomination:${memberKey}`;
           const existing = await redis.hGetAll(nominationKey);
           if (Object.keys(existing).length > 0) {
-            const alreadySeconded = await redis.hGet(`user_seconded:${nominatedBy}`, memberKey);
+            const alreadySeconded = await redis.hGet(`user_seconded:${nominatedById}`, memberKey);
             if (alreadySeconded === '1') {
               res.status(400).json({
                 error: 'You have already seconded this nominee',
@@ -528,7 +549,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
             const currentVoteCount = parseInt(existing.voteCount || '1');
             const newVoteCount = currentVoteCount + 1;
             await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
-            await redis.hSet(`user_seconded:${nominatedBy}`, { [memberKey]: '1' });
+            await redis.hSet(`user_seconded:${nominatedById}`, { [memberKey]: '1' });
             res.json({
               success: true,
               isAdditionalVote: true,
@@ -569,7 +590,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
           const nominationKey = `nomination:${memberKey}`;
           const existing = await redis.hGetAll(nominationKey);
           if (Object.keys(existing).length > 0) {
-            const alreadySeconded = await redis.hGet(`user_seconded:${nominatedBy}`, memberKey);
+            const alreadySeconded = await redis.hGet(`user_seconded:${nominatedById}`, memberKey);
             if (alreadySeconded === '1') {
               res.status(400).json({
                 error: 'You have already seconded this nominee',
@@ -580,7 +601,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
             const currentVoteCount = parseInt(existing.voteCount || '1');
             const newVoteCount = currentVoteCount + 1;
             await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
-            await redis.hSet(`user_seconded:${nominatedBy}`, { [memberKey]: '1' });
+            await redis.hSet(`user_seconded:${nominatedById}`, { [memberKey]: '1' });
             res.json({
               success: true,
               isAdditionalVote: true,
@@ -589,7 +610,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
             });
             return;
           }
-          if (!isMod && !(await reserveNominationSlot(nominatedBy, res))) return;
+          if (!isMod && !(await reserveNominationSlot(nominatedById, res))) return;
           const nomination: Record<string, string> = {
             postId: '',
             title,
@@ -598,7 +619,8 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
             karma: '0',
             url: postUrl.trim(),
             category,
-            nominatedBy,
+            nominatedBy: nominatedByDisplay,
+            nominatedById,
             nominationReason: reason || '',
             fetchedAt: Date.now().toString(),
             thumbnail: '',
@@ -640,7 +662,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       const existing = await redis.hGetAll(nominationKey);
 
       if (Object.keys(existing).length > 0) {
-        const alreadySeconded = await redis.hGet(`user_seconded:${nominatedBy}`, memberKey);
+        const alreadySeconded = await redis.hGet(`user_seconded:${nominatedById}`, memberKey);
         if (alreadySeconded === '1') {
           res.status(400).json({
             error: 'You have already seconded this nominee',
@@ -651,7 +673,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
         const currentVoteCount = parseInt(existing.voteCount || '1');
         const newVoteCount = currentVoteCount + 1;
         await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
-        await redis.hSet(`user_seconded:${nominatedBy}`, { [memberKey]: '1' });
+        await redis.hSet(`user_seconded:${nominatedById}`, { [memberKey]: '1' });
         res.json({
           success: true,
           isAdditionalVote: true,
@@ -661,7 +683,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
         return;
       }
 
-      if (!isMod && !(await reserveNominationSlot(nominatedBy, res))) return;
+          if (!isMod && !(await reserveNominationSlot(nominatedById, res))) return;
       const nomination: Record<string, string> = {
         postId: post.id,
         title: title || post.title,
@@ -671,7 +693,8 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
         karma: post.score.toString(),
         url: postUrl,
         category,
-        nominatedBy,
+        nominatedBy: nominatedByDisplay,
+        nominatedById,
         nominationReason: reason || '',
         fetchedAt: Date.now().toString(),
         thumbnail: thumbnailUrl,
@@ -690,7 +713,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       const nominationKey = `nomination:${memberKey}`;
       const existing = await redis.hGetAll(nominationKey);
       if (Object.keys(existing).length > 0) {
-        const alreadySeconded = await redis.hGet(`user_seconded:${nominatedBy}`, memberKey);
+        const alreadySeconded = await redis.hGet(`user_seconded:${nominatedById}`, memberKey);
         if (alreadySeconded === '1') {
           res.status(400).json({
             error: 'You have already seconded this nominee',
@@ -701,7 +724,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
         const currentVoteCount = parseInt(existing.voteCount || '1');
         const newVoteCount = currentVoteCount + 1;
         await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
-        await redis.hSet(`user_seconded:${nominatedBy}`, { [memberKey]: '1' });
+        await redis.hSet(`user_seconded:${nominatedById}`, { [memberKey]: '1' });
         res.json({
           success: true,
           isAdditionalVote: true,
@@ -733,7 +756,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
     const existing = await redis.hGetAll(nominationKey);
 
     if (Object.keys(existing).length > 0) {
-      const alreadySeconded = await redis.hGet(`user_seconded:${nominatedBy}`, memberKey);
+      const alreadySeconded = await redis.hGet(`user_seconded:${nominatedById}`, memberKey);
       if (alreadySeconded === '1') {
         res.status(400).json({
           error: 'You have already seconded this nominee',
@@ -744,7 +767,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       const currentVoteCount = parseInt(existing.voteCount || '1');
       const newVoteCount = currentVoteCount + 1;
       await redis.hSet(nominationKey, { voteCount: newVoteCount.toString() });
-      await redis.hSet(`user_seconded:${nominatedBy}`, { [memberKey]: '1' });
+      await redis.hSet(`user_seconded:${nominatedById}`, { [memberKey]: '1' });
       res.json({
         success: true,
         isAdditionalVote: true,
@@ -754,7 +777,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    if (!isMod && !(await reserveNominationSlot(nominatedBy, res))) return;
+      if (!isMod && !(await reserveNominationSlot(nominatedById, res))) return;
     const nomination: Record<string, string> = {
       postId: '',
       title,
@@ -763,7 +786,8 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       karma: '0',
       url: '',
       category,
-      nominatedBy,
+      nominatedBy: nominatedByDisplay,
+      nominatedById,
       nominationReason: reason || '',
       fetchedAt: Date.now().toString(),
       thumbnail: '',
@@ -807,6 +831,9 @@ router.get('/api/nominations', async (req, res): Promise<void> => {
     const hiddenHash = await redis.hGetAll(HIDDEN_NOMINATIONS_KEY);
     const hiddenSet = new Set(Object.keys(hiddenHash));
 
+    const flaggedHash = modRequestingHidden ? await redis.hGetAll(FLAGGED_NOMINATIONS_KEY) : {};
+    const flaggedSet = new Set(Object.keys(flaggedHash));
+
     // Which nomination memberKeys has the current user seconded?
     const secondedKey = `user_seconded:${currentUsername}`;
     const secondedHash = await redis.hGetAll(secondedKey);
@@ -822,9 +849,10 @@ router.get('/api/nominations', async (req, res): Promise<void> => {
       if (Object.keys(data).length > 0) {
         const nom = data as unknown as Nomination;
         nom.currentUserHasSeconded = secondedHash[mem] === '1';
+        nom.memberKey = mem;
         if (modRequestingHidden) {
-          nom.memberKey = mem;
           nom.hidden = hiddenSet.has(mem);
+          nom.flagged = flaggedSet.has(mem);
         }
         nominations.push(nom);
       }
@@ -839,6 +867,40 @@ router.get('/api/nominations', async (req, res): Promise<void> => {
     console.error('Error fetching nominations:', error);
     res.status(500).json({
       error: getErrorMessage(error) || 'Failed to fetch nominations',
+      success: false,
+    });
+  }
+});
+
+/**
+ * Flag a nomination (report). One flag per user per nomination; idempotent.
+ */
+router.post('/api/flag-nomination', async (req, res): Promise<void> => {
+  try {
+    const userId = getNominatorUsername(req);
+    if (!userId || userId === 'anonymous') {
+      res.status(401).json({ error: 'Sign in to report', success: false });
+      return;
+    }
+    const { memberKey } = req.body;
+    if (typeof memberKey !== 'string' || !memberKey.trim()) {
+      res.status(400).json({ error: 'memberKey required', success: false });
+      return;
+    }
+    const key = memberKey.trim();
+    const userFlaggedKey = `user_flagged:${userId}`;
+    const already = await redis.hGet(userFlaggedKey, key);
+    if (already === '1') {
+      res.json({ success: true, alreadyFlagged: true });
+      return;
+    }
+    await redis.hSet(userFlaggedKey, { [key]: '1' });
+    await redis.hSet(FLAGGED_NOMINATIONS_KEY, { [key]: '1' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error flagging nomination:', error);
+    res.status(500).json({
+      error: getErrorMessage(error) || 'Failed to report',
       success: false,
     });
   }
@@ -1158,6 +1220,7 @@ router.post('/api/delete', async (req, res): Promise<void> => {
     for (const memberKey of memberKeys) {
       const nominationKey = `nomination:${memberKey.member}`;
       const data = await redis.hGetAll(nominationKey);
+      if (data?.nominatedById) usersToReset.add(data.nominatedById);
       if (data?.nominatedBy) usersToReset.add(data.nominatedBy);
       await redis.del(nominationKey);
       await redis.zRem('nominations:all', [memberKey.member]);

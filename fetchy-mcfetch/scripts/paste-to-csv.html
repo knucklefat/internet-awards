@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paste to CSV – Internet Awards</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 720px;
+      margin: 24px auto;
+      padding: 0 16px;
+      color: #1a1a1a;
+      background: #fafafa;
+    }
+    h1 { font-size: 1.25rem; margin-bottom: 8px; }
+    p { color: #555; font-size: 0.9rem; margin-bottom: 16px; }
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 12px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      resize: vertical;
+    }
+    .actions { margin-top: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #00E2B7;
+      color: #0a0a0a;
+    }
+    button:hover { background: #00c9a3; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .message { font-size: 0.9rem; color: #0a0a0a; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <h1>Paste to CSV</h1>
+  <p>Paste raw CSV data from the app (clipboard export), then click <strong>Download CSV</strong> to get a proper .csv file that opens correctly in Google Sheets.</p>
+  <textarea id="paste" placeholder="Paste your exported nominations CSV here…"></textarea>
+  <div class="actions">
+    <button type="button" id="download">Download CSV</button>
+    <span id="message" class="message"></span>
+  </div>
+
+  <script>
+    (function () {
+      const pasteEl = document.getElementById('paste');
+      const downloadBtn = document.getElementById('download');
+      const messageEl = document.getElementById('message');
+
+      function parseCsvLine(line) {
+        const out = [];
+        let i = 0;
+        while (i < line.length) {
+          if (line[i] === '"') {
+            let field = '';
+            i += 1;
+            while (i < line.length) {
+              if (line[i] === '"') {
+                if (line[i + 1] === '"') {
+                  field += '"';
+                  i += 2;
+                } else {
+                  i += 1;
+                  break;
+                }
+              } else {
+                field += line[i];
+                i += 1;
+              }
+            }
+            out.push(field);
+            if (i < line.length && line[i] === ',') i += 1;
+          } else {
+            const comma = line.indexOf(',', i);
+            if (comma === -1) {
+              out.push(line.slice(i).trim());
+              break;
+            }
+            out.push(line.slice(i, comma).trim());
+            i = comma + 1;
+          }
+        }
+        return out;
+      }
+
+      function escapeCsvField(value) {
+        const s = String(value ?? '');
+        if (/[",\n\r]/.test(s)) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }
+
+      function parsePastedCsv(text) {
+        const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const lines = normalized.split('\n').filter(function (l) { return l.length > 0; });
+        const rows = [];
+        for (let i = 0; i < lines.length; i++) {
+          rows.push(parseCsvLine(lines[i]));
+        }
+        return rows;
+      }
+
+      function serializeToCsv(rows) {
+        return rows.map(function (row) {
+          return row.map(escapeCsvField).join(',');
+        }).join('\r\n');
+      }
+
+      function downloadCsv() {
+        const text = pasteEl.value.trim();
+        if (!text) {
+          messageEl.textContent = 'Paste some CSV data first.';
+          messageEl.className = 'message error';
+          return;
+        }
+        try {
+          const rows = parsePastedCsv(text);
+          if (rows.length === 0) {
+            messageEl.textContent = 'No rows found.';
+            messageEl.className = 'message error';
+            return;
+          }
+          const csv = serializeToCsv(rows);
+          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'nominations-' + new Date().toISOString().slice(0, 10) + '.csv';
+          a.click();
+          URL.revokeObjectURL(url);
+          messageEl.textContent = 'Downloaded ' + rows.length + ' row(s). Open in Google Sheets.';
+          messageEl.className = 'message';
+        } catch (e) {
+          messageEl.textContent = 'Error: ' + e.message;
+          messageEl.className = 'message error';
+        }
+      }
+
+      downloadBtn.addEventListener('click', downloadCsv);
+    })();
+  </script>
+</body>
+</html>

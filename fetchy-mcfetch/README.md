@@ -23,12 +23,12 @@ All commands below are run from the **`fetchy-mcfetch/`** directory.
 | **Multi-category events** | One event with many categories; categories can be grouped (e.g. “Games”, “Creators”). Config-driven (no code change for new categories). |
 | **Link or link-free nominations** | Nominate with a Reddit post URL (title/thumbnail fetched) or with name/description only (no link). |
 | **Seconding (“Nominate too”)** | Users can second existing nominees; count is tracked; one second per user per nomination. |
-| **Per-user rate limit** | Configurable cap on **new** nominations per user (e.g. 30); seconding does not count. Enforced server-side; 429 when over limit. |
+| **Per-user rate limit** | Configurable cap on **new** nominations per user (e.g. 30); seconding does not count. Enforced server-side; 429 when over limit. **Moderators are exempt** (no limit). |
 | **Post preview** | Pasting a Reddit URL (including short links) fetches title/thumbnail for the form. Uses Devvit HTTP fetch for `reddit.com`, `www.reddit.com`, `redd.it`. |
 | **Mod-only post creation** | Menu item for moderators creates a custom post that opens the app (splash or main view). |
-| **Admin panel** | Mod-only panel (e.g. type “admin”): stats, nominations list, hide/unhide nominees, shadow-ban users, CSV export, delete all (with confirmation). |
-| **CSV export** | Export all (or filtered) nominations for judging or external processing. |
-| **Mobile-first UI** | Responsive layout, toasts, skeleton loading, touch-friendly controls. |
+| **In-App Moderation** | Mod-only panel: stats, nominations list, hide/unhide nominees from lists, flag bad actors, data export, delete all (with confirmation). |
+| **Data Dump** | Export all (or filtered) nominations for judging or external processing. |
+| **Mobile-first UI** | Responsive layout, toasts, skeleton loading, touch-friendly controls. Nominee list: double-stroke dividers, LOAD MORE for pagination, “JUMP TO OTHER AWARD IN THIS CATEGORY” quick-switch, footer (RULES \| HELP \| REPORT, ©2026 Reddit, Inc.). |
 
 ---
 
@@ -51,6 +51,7 @@ All commands below are run from the **`fetchy-mcfetch/`** directory.
 ### Rate limit
 
 - **Default:** 30 new nominations per user per event (seconding does not count).
+- **Mod bypass:** Subreddit moderators are exempt from the limit (server and client treat mods as unlimited via `isModeratorUser` and `GET /api/user/nomination-count` → `unlimited: true`).
 - **Where:** Server-side in `src/server/index.ts` (`NOMINATION_LIMIT_PER_USER`, `user_nomination_count:*`, `reserveNominationSlot()`). Change the constant to change the limit; delete-all (or delete by category) resets counts for affected users.
 
 ### Menu and display name
@@ -143,7 +144,7 @@ As a moderator: Mod Tools → Create Post → choose the menu item you configure
 | `GET /api/event/config` | Event, categories (6), and awards (24) config (for client). |
 | `GET /api/nominations` | List nominations; optional `?category=<id>`. |
 | `POST /api/submit-nomination` | Create nomination or second (body: category, title, postUrl, reason, etc.). |
-| `GET /api/user/nomination-count` | Current user’s used/limit (for rate limit UI). |
+| `GET /api/user/nomination-count` | Current user’s used/limit (and `unlimited: true` for moderators) for rate limit UI. |
 | `GET /api/preview-post` | Preview data for a Reddit URL (`?url=...`). |
 | `GET /api/user/is-moderator` | Whether current user is subreddit mod. |
 | `GET /api/stats/event` | Event-level stats (e.g. for admin). |
