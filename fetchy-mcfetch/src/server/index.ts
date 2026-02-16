@@ -488,15 +488,18 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    const currentCount = await ensureUserNominationCount(nominatedBy);
-    if (currentCount >= NOMINATION_LIMIT_PER_USER) {
-      res.status(429).json({
-        error: `You've reached the limit of ${NOMINATION_LIMIT_PER_USER} nominations.`,
-        success: false,
-        limit: NOMINATION_LIMIT_PER_USER,
-        used: currentCount,
-      });
-      return;
+    const isMod = await isModeratorUser(req);
+    if (!isMod) {
+      const currentCount = await ensureUserNominationCount(nominatedBy);
+      if (currentCount >= NOMINATION_LIMIT_PER_USER) {
+        res.status(429).json({
+          error: `You've reached the limit of ${NOMINATION_LIMIT_PER_USER} nominations.`,
+          success: false,
+          limit: NOMINATION_LIMIT_PER_USER,
+          used: currentCount,
+        });
+        return;
+      }
     }
 
     const hasLink = typeof postUrl === 'string' && postUrl.trim().length > 0;
@@ -586,7 +589,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
             });
             return;
           }
-          if (!(await reserveNominationSlot(nominatedBy, res))) return;
+          if (!isMod && !(await reserveNominationSlot(nominatedBy, res))) return;
           const nomination: Record<string, string> = {
             postId: '',
             title,
@@ -658,7 +661,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
         return;
       }
 
-      if (!(await reserveNominationSlot(nominatedBy, res))) return;
+      if (!isMod && !(await reserveNominationSlot(nominatedBy, res))) return;
       const nomination: Record<string, string> = {
         postId: post.id,
         title: title || post.title,
@@ -751,7 +754,7 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    if (!(await reserveNominationSlot(nominatedBy, res))) return;
+    if (!isMod && !(await reserveNominationSlot(nominatedBy, res))) return;
     const nomination: Record<string, string> = {
       postId: '',
       title,
