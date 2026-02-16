@@ -1,12 +1,12 @@
 /**
  * The Internet Awards - Event Configuration
- * Single 3-Day Event with 6 Category Groups
+ * Single 3-Day Event with 6 categories (groups) and 24 awards.
  */
 
-import { EventConfig, CategoryGroup, AwardCategory } from '../types/event';
+import { EventConfig, Category, Award } from '../types/event';
 
-// Category Groups
-export const CATEGORY_GROUPS: CategoryGroup[] = [
+// The 6 categories (formerly "category groups")
+export const CATEGORIES: Category[] = [
   {
     id: 'gaming-hobbies',
     name: 'Gaming & Hobbies',
@@ -57,12 +57,12 @@ export const CATEGORY_GROUPS: CategoryGroup[] = [
   },
 ];
 
-// All Award Categories (24 total) – finalized names, descriptions, resolution guidance
-export const AWARD_CATEGORIES: AwardCategory[] = [
+// All 24 awards – finalized names, descriptions, resolution guidance
+export const AWARDS: Award[] = [
   // GAMING & HOBBIES (4 awards)
   {
     id: 'best-gaming-moment',
-    categoryGroup: 'gaming-hobbies',
+    category: 'gaming-hobbies',
     name: 'S-Tier Game',
     emoji: '🎮',
     description: 'Greatest, most enjoyable overall gaming experience',
@@ -75,7 +75,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'holy-grail-collectible',
-    categoryGroup: 'gaming-hobbies',
+    category: 'gaming-hobbies',
     name: 'Holy Grail',
     emoji: '🏆',
     description: 'The most desirable collectible released in the past year',
@@ -88,7 +88,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'best-artistic-creation',
-    categoryGroup: 'gaming-hobbies',
+    category: 'gaming-hobbies',
     name: 'Artistic Masterpiece',
     emoji: '🎨',
     description: 'Best original artistic creation',
@@ -101,7 +101,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'most-quotable-quote-fiction',
-    categoryGroup: 'gaming-hobbies',
+    category: 'gaming-hobbies',
     name: 'Most Quotable',
     emoji: '💬',
     description: 'Work of fiction most worth quoting',
@@ -116,7 +116,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   // FUNNY & CUTE (4 awards)
   {
     id: 'funniest-original-content',
-    categoryGroup: 'funny-cute',
+    category: 'funny-cute',
     name: 'Comedy Gold',
     emoji: '😂',
     description: 'Funniest original humor skit, comic, or joke',
@@ -129,7 +129,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'outstanding-aww',
-    categoryGroup: 'funny-cute',
+    category: 'funny-cute',
     name: 'Outstanding Aww',
     emoji: '🐾',
     description: 'Most adorable animal on the internet',
@@ -142,7 +142,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'meme-won-internet',
-    categoryGroup: 'funny-cute',
+    category: 'funny-cute',
     name: 'Top Shelf Meme',
     emoji: '🔥',
     description: 'Meme that understood the assignment',
@@ -155,7 +155,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'wholesomest-moment',
-    categoryGroup: 'funny-cute',
+    category: 'funny-cute',
     name: 'Faith in Humanity',
     emoji: '❤️',
     description: 'Most wholesome or heartwarming piece of content',
@@ -170,7 +170,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   // KNOWLEDGE (4 awards)
   {
     id: 'best-plot-twist',
-    categoryGroup: 'knowledge',
+    category: 'knowledge',
     name: 'Deepest Learning',
     emoji: '🤯',
     description: 'Deepest, most rewarding thread or thought-starter on the internet',
@@ -183,7 +183,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'most-innovative-tech',
-    categoryGroup: 'knowledge',
+    category: 'knowledge',
     name: 'Tech that Delivered',
     emoji: '🚀',
     description: 'Tech innovation that lived up to the hype',
@@ -196,7 +196,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'breakthrough-scientific-discovery',
-    categoryGroup: 'knowledge',
+    category: 'knowledge',
     name: 'Mind-Blowing Discovery',
     emoji: '🔬',
     description: 'Research, discovery, or finding in a field of science',
@@ -209,7 +209,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'most-informative-episode',
-    categoryGroup: 'knowledge',
+    category: 'knowledge',
     name: 'Stream of Consciousness',
     emoji: '🎙️',
     description: 'Most Informative episode this past year',
@@ -224,7 +224,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   // LIFESTYLE & ADVICE (4 awards)
   {
     id: 'life-hack-changed-everything',
-    categoryGroup: 'lifestyle-advice',
+    category: 'lifestyle-advice',
     name: 'Life-Changing Life Hack',
     emoji: '💡',
     description: 'A life hack that actually changed everything.',
@@ -237,7 +237,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'destination-having-moment',
-    categoryGroup: 'lifestyle-advice',
+    category: 'lifestyle-advice',
     name: 'Pinned Destination',
     emoji: '✈️',
     description: 'Travel destination worth every step of the trip',
@@ -250,7 +250,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'best-fashion-style-trend',
-    categoryGroup: 'lifestyle-advice',
+    category: 'lifestyle-advice',
     name: 'The Look',
     emoji: '👗',
     description: 'Style trend that dominated the discourse',
@@ -263,7 +263,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'best-original-dish',
-    categoryGroup: 'lifestyle-advice',
+    category: 'lifestyle-advice',
     name: 'Chef\'s Kiss',
     emoji: '🍳',
     description: 'Most impressive culinary contribution',
@@ -278,7 +278,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   // POP CULTURE (4 awards)
   {
     id: 'best-show-episode',
-    categoryGroup: 'pop-culture',
+    category: 'pop-culture',
     name: 'Redemption Arc',
     emoji: '📺',
     description: 'Best episode or story arc in a series',
@@ -291,7 +291,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'absolute-cinema-moment',
-    categoryGroup: 'pop-culture',
+    category: 'pop-culture',
     name: 'Absolute Cinema',
     emoji: '🎬',
     description: 'The film most worth talking about',
@@ -304,7 +304,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'best-sports-moment',
-    categoryGroup: 'pop-culture',
+    category: 'pop-culture',
     name: 'Peak Sports',
     emoji: '⚽',
     description: 'Best highlight or moment in sports',
@@ -317,7 +317,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'hottest-earworm',
-    categoryGroup: 'pop-culture',
+    category: 'pop-culture',
     name: 'Hottest Earworm',
     emoji: '🎵',
     description: 'The song you still can\'t stop listening to',
@@ -332,7 +332,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   // THE INTERNET (4 awards)
   {
     id: 'community-moment',
-    categoryGroup: 'the-internet',
+    category: 'the-internet',
     name: 'Community of the Moment',
     emoji: '🤝',
     description: 'A community that brought the internet together',
@@ -345,7 +345,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'best-channel-stream-podcast',
-    categoryGroup: 'the-internet',
+    category: 'the-internet',
     name: 'Positive Influence',
     emoji: '🎙️',
     description: 'A channel, stream, or podcast moment that had a positive effect',
@@ -358,7 +358,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'best-internet-trend',
-    categoryGroup: 'the-internet',
+    category: 'the-internet',
     name: 'Viral Trend',
     emoji: '📈',
     description: 'The most memorable trend that spread across the internet',
@@ -371,7 +371,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     id: 'most-quotable-ama',
-    categoryGroup: 'the-internet',
+    category: 'the-internet',
     name: 'Ask Me Anything',
     emoji: '💭',
     description: 'The AMA most worth reading',
@@ -390,27 +390,28 @@ export const INTERNET_AWARDS_EVENT: EventConfig = {
   description: 'Celebrating the best of Reddit - 24 Awards in 6 categories over 3 days',
   startDate: '2026-02-01', // TBD
   endDate: '2026-02-03',   // TBD
-  categories: AWARD_CATEGORIES,
-  categoryGroups: CATEGORY_GROUPS,
+  categories: CATEGORIES,
+  awards: AWARDS,
 };
 
-// Helper Functions
-export function getCategoryById(categoryId: string): AwardCategory | undefined {
-  return AWARD_CATEGORIES.find(cat => cat.id === categoryId);
+// Helpers: the 6 categories
+export function getCategoryById(categoryId: string): Category | undefined {
+  return CATEGORIES.find(c => c.id === categoryId);
 }
 
-export function getCategoryGroupById(groupId: string): CategoryGroup | undefined {
-  return CATEGORY_GROUPS.find(group => group.id === groupId);
+export function getAllCategories(): Category[] {
+  return CATEGORIES;
 }
 
-export function getCategoriesByGroup(groupId: string): AwardCategory[] {
-  return AWARD_CATEGORIES.filter(cat => cat.categoryGroup === groupId);
+// Helpers: the 24 awards
+export function getAwardById(awardId: string): Award | undefined {
+  return AWARDS.find(a => a.id === awardId);
 }
 
-export function getAllCategories(): AwardCategory[] {
-  return AWARD_CATEGORIES;
+export function getAwardsByCategory(categoryId: string): Award[] {
+  return AWARDS.filter(a => a.category === categoryId);
 }
 
-export function getAllCategoryGroups(): CategoryGroup[] {
-  return CATEGORY_GROUPS;
+export function getAllAwards(): Award[] {
+  return AWARDS;
 }

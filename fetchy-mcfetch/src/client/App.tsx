@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AdminPanel } from './components/AdminPanel';
-import type { AwardCategory, CategoryGroup, Nomination, EventStats } from '../shared/types/event';
+import type { Award, Category, Nomination, EventStats } from '../shared/types/event';
 
 type View = 'category-select' | 'submit' | 'list';
 
-/** Gradient colors per category group (start, middle, end). Used for award card tops. */
+/** Gradient colors per category (start, middle, end). Used for award card tops. */
 const GROUP_GRADIENTS: Record<string, { start: string; middle: string; end: string }> = {
   'gaming-hobbies': { start: '#00e2b7', middle: '#92ffea', end: '#dfff00' },
   'funny-cute': { start: '#ff5fc2', middle: '#ff9fdf', end: '#ffde55' },
@@ -30,9 +30,9 @@ function getGroupGradient(groupId: string, seed: string): string {
 
 export const App = () => {
   const [view, setView] = useState<View>('category-select');
-  const [categories, setCategories] = useState<AwardCategory[]>([]);
-  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<AwardCategory | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]); // The 6 categories
+  const [awards, setAwards] = useState<Award[]>([]); // The 24 awards
+  const [selectedAward, setSelectedAward] = useState<Award | null>(null);
   const [nominations, setNominations] = useState<Nomination[]>([]);
   const [eventStats, setEventStats] = useState<EventStats | null>(null);
   
@@ -81,15 +81,15 @@ export const App = () => {
 
   // Refresh nomination count when entering submit form so limit display is up to date
   useEffect(() => {
-    if (view === 'submit' && selectedCategory) loadNominationCount();
-  }, [view, selectedCategory?.id]);
+    if (view === 'submit' && selectedAward) loadNominationCount();
+  }, [view, selectedAward?.id]);
 
   // When nominee list is visible on submit view, ensure we have nominations for this category (e.g. user returned to award)
   useEffect(() => {
-    if (view === 'submit' && selectedCategory?.id && showNomineeList) {
-      loadNominations(selectedCategory.id);
+    if (view === 'submit' && selectedAward?.id && showNomineeList) {
+      loadNominations(selectedAward.id);
     }
-  }, [view, selectedCategory?.id, showNomineeList]);
+  }, [view, selectedAward?.id, showNomineeList]);
 
   const wasLoadingNominations = useRef(false);
   useEffect(() => {
@@ -142,7 +142,7 @@ export const App = () => {
       
       if (result.success) {
         setCategories(result.data.categories || []);
-        setCategoryGroups(result.data.categoryGroups || []);
+        setAwards(result.data.awards || []);
       }
       loadNominationCount();
     } catch (error) {
@@ -234,10 +234,10 @@ export const App = () => {
     return () => clearTimeout(timer);
   }, [submitUrl]);
 
-  const selectCategory = (category: AwardCategory) => {
+  const selectAward = (award: Award) => {
     setIsTransitioning(true);
     setTimeout(() => {
-      setSelectedCategory(category);
+      setSelectedAward(award);
       setView('submit');
       setShowEntryForm(true);
       setNomineesStartIndex(0);
@@ -262,7 +262,7 @@ export const App = () => {
     setTimeout(() => {
       if (view === 'submit') {
         setView('category-select');
-        setSelectedCategory(null);
+        setSelectedAward(null);
         setNominationTitle('');
         setSubmitUrl('');
         setNominationReason('');
@@ -312,7 +312,7 @@ export const App = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          category: selectedCategory?.id,
+          category: selectedAward?.id,
           title: nominationTitle.trim(),
           postUrl: submitUrl.trim() || undefined,
           reason: nominationReason.trim() || undefined,
@@ -343,7 +343,7 @@ export const App = () => {
         setShowEntryForm(false);
         // Reload nominations to show the newly submitted one
         setTimeout(() => {
-          loadNominations(selectedCategory?.id);
+          loadNominations(selectedAward?.id);
         }, 1000);
       } else {
         setMessage(result.error || 'Failed to submit nomination');
@@ -479,20 +479,20 @@ export const App = () => {
         <p className="main-subtitle">Celebrating the very best of The Internet</p>
 
         <div className="award-count-divider">
-          <p className="award-group-break-title">24 AWARDS ACROSS 6 CATEGORIES</p>
+          <p className="category-break-title">24 AWARDS ACROSS 6 CATEGORIES</p>
         </div>
 
-        {categoryGroups.map(group => {
-          const groupCategories = categories.filter(cat => cat.categoryGroup === group.id);
-          const headerImage = getCategoryHeaderImage(group.id);
+        {categories.map(cat => {
+          const categoryAwards = awards.filter(a => a.category === cat.id);
+          const headerImage = getCategoryHeaderImage(cat.id);
           
           return (
-            <div key={group.id} className="award-group-section">
-              <div className="award-group-header">
+            <div key={cat.id} className="category-section">
+              <div className="category-header">
                 <img 
                   src={headerImage}
-                  alt={group.name}
-                  className="award-group-header-image"
+                  alt={cat.name}
+                  className="category-header-image"
                   onError={(e) => {
                     // Fallback to text if image fails
                     e.currentTarget.style.display = 'none';
@@ -500,30 +500,30 @@ export const App = () => {
                     if (fallback) fallback.style.display = 'flex';
                   }}
                 />
-                <h4 className="award-group-title" style={{ display: 'none' }}>
-                  <span className="group-emoji">{group.emoji}</span>
-                  {group.name.toUpperCase()}
+                <h4 className="category-title" style={{ display: 'none' }}>
+                  <span className="group-emoji">{cat.emoji}</span>
+                  {cat.name.toUpperCase()}
                 </h4>
               </div>
-              <p className="award-group-tagline">{group.tagline}</p>
-              <p className="award-group-break-title">CATEGORY AWARDS</p>
+              <p className="category-tagline">{cat.tagline}</p>
+              <p className="category-break-title">CATEGORY AWARDS</p>
               <div className="award-grid">
-                {groupCategories.map(cat => (
+                {categoryAwards.map(award => (
                   <button
-                    key={cat.id}
+                    key={award.id}
                     className="award-card"
-                    onClick={() => selectCategory(cat)}
+                    onClick={() => selectAward(award)}
                   >
                     <div 
                       className="award-gradient-section" 
-                      style={{ background: getGroupGradient(group.id, cat.id) }}
+                      style={{ background: getGroupGradient(cat.id, award.id) }}
                     />
                     <div className="award-icon-container">
                       <div className="award-icon">
-                        {cat.iconPath ? (
+                        {award.iconPath ? (
                           <img 
-                            src={cat.iconPath} 
-                            alt={cat.name}
+                            src={award.iconPath} 
+                            alt={award.name}
                             className="award-icon-img"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
@@ -532,12 +532,12 @@ export const App = () => {
                             }}
                           />
                         ) : null}
-                        <span style={{ display: cat.iconPath ? 'none' : 'inline' }}>{cat.emoji}</span>
+                        <span style={{ display: award.iconPath ? 'none' : 'inline' }}>{award.emoji}</span>
                       </div>
                     </div>
                     <div className="award-details-section">
-                      <h3>{cat.name}</h3>
-                      <p className="award-description">{cat.description}</p>
+                      <h3>{award.name}</h3>
+                      <p className="award-description">{award.description}</p>
                       <div className="award-card-footer">Nominate Now</div>
                     </div>
                   </button>
@@ -560,7 +560,7 @@ export const App = () => {
   };
 
   const renderSubmitForm = () => {
-    if (!selectedCategory) return null;
+    if (!selectedAward) return null;
 
     const nomineesWindowStart =
       nominations.length <= 5 ? 0 : Math.min(nomineesStartIndex, Math.max(0, nominations.length - 5));
@@ -575,25 +575,25 @@ export const App = () => {
         </div>
 
         <div className="form-header">
-          {selectedCategory.headerImage && (
+          {selectedAward.headerImage && (
             <div className="award-header-banner">
               <img 
-                src={selectedCategory.headerImage} 
-                alt={selectedCategory.name}
+                src={selectedAward.headerImage} 
+                alt={selectedAward.name}
                 className="award-header-image"
               />
-              <h1 className={`award-header-title ${selectedCategory.headerTextAlign ? `align-${selectedCategory.headerTextAlign}` : ''}`}>
-                {selectedCategory.name}
+              <h1 className={`award-header-title ${selectedAward.headerTextAlign ? `align-${selectedAward.headerTextAlign}` : ''}`}>
+                {selectedAward.name}
               </h1>
             </div>
           )}
-          {!selectedCategory.headerImage && (
+          {!selectedAward.headerImage && (
             <div className="category-badge">
-              <span className="category-emoji">{selectedCategory.emoji}</span>
-              <span className="category-name">{selectedCategory.name}</span>
+              <span className="category-emoji">{selectedAward.emoji}</span>
+              <span className="category-name">{selectedAward.name}</span>
             </div>
           )}
-          <p className="award-description-text">{selectedCategory.description}</p>
+          <p className="award-description-text">{selectedAward.description}</p>
           <a
             href="https://www.reddit.com/help/contentpolicy/"
             target="_blank"
@@ -701,12 +701,12 @@ export const App = () => {
         {showNomineeList && (
           <div className="nominees-section">
             <div className="nominees-section-header">
-              {selectedCategory && (
+              {selectedAward && (
                 <div className="category-badge-small category-flair-in-header">
-                  {selectedCategory.iconPath ? (
+                  {selectedAward.iconPath ? (
                     <img
-                      src={selectedCategory.iconPath}
-                      alt={selectedCategory.name}
+                      src={selectedAward.iconPath}
+                      alt={selectedAward.name}
                       className="category-badge-icon"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -715,8 +715,8 @@ export const App = () => {
                       }}
                     />
                   ) : null}
-                  <span style={{ display: selectedCategory.iconPath ? 'none' : 'inline' }}>{selectedCategory.emoji}</span>{' '}
-                  {selectedCategory.name}
+                  <span style={{ display: selectedAward.iconPath ? 'none' : 'inline' }}>{selectedAward.emoji}</span>{' '}
+                  {selectedAward.name}
                   <span className="nominee-label">Other Nominees</span>
                 </div>
               )}
@@ -813,7 +813,7 @@ export const App = () => {
                                   ...(secondPostUrl ? { postUrl: secondPostUrl } : {}),
                                   ...(nom.thingSlug ? { thingSlug: nom.thingSlug } : {}),
                                 },
-                                selectedCategory?.id
+                                selectedAward?.id
                               )
                             }
                           >
@@ -844,15 +844,15 @@ export const App = () => {
               <div className="related-awards-section">
                 <h3>Nominate for other awards in this category:</h3>
                 <div className="related-awards-grid">
-                  {categories
-                    .filter(cat => cat.categoryGroup === selectedCategory.categoryGroup && cat.id !== selectedCategory.id)
+                  {awards
+                    .filter(a => a.category === selectedAward.category && a.id !== selectedAward.id)
                     .slice(0, 5)
                     .map((award) => (
                       <button
                         key={award.id}
                         className="related-award-button"
                         onClick={() => {
-                          setSelectedCategory(award);
+                          setSelectedAward(award);
                           setShowEntryForm(true);
                           setNomineesStartIndex(0);
                           setNominationTitle('');

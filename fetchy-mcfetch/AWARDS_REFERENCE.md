@@ -8,12 +8,12 @@ Use this when changing award **names**, **descriptions**, or the **thing being a
 
 **File:** `src/shared/config/event-config.ts`
 
-Each award is one entry in **`AWARD_CATEGORIES`** (and belongs to a **`CATEGORY_GROUPS`** entry). The type is **`AwardCategory`** from `src/shared/types/event.ts`:
+Each **award** is one entry in **`AWARDS`** (and belongs to one of the 6 **`CATEGORIES`**). Types: **`Award`**, **`Category`** from `src/shared/types/event.ts`:
 
 | Field | Purpose | Used where |
 |--------|---------|------------|
 | **`id`** | Stable key. **Do not change** unless you migrate Redis + CSV + script. Used in Redis keys, API, CSV export, and LLM script. | Server (submit, list, export, delete, stats), client (routing, API), script (`THING_TYPE_BY_CATEGORY` key) |
-| **`categoryGroup`** | Group id (e.g. `'gaming-hobbies'`). | Grouping on main screen, CSV "Category Group", LLM prompt context |
+| **`category`** | Category id (one of the 6, e.g. `'gaming-hobbies'`). | Grouping on main screen, CSV "Category", LLM prompt context |
 | **`name`** | Display name (e.g. "S-Tier Gaming", "Detour Destination"). | All UI: cards, submit header, "Other Nominees in {name}", related awards |
 | **`emoji`** | Fallback when no icon. | Card and list when `iconPath` missing or fails |
 | **`description`** | What the award is for (shown on nomination page). | Submit form under the award header |
@@ -23,7 +23,7 @@ Each award is one entry in **`AWARD_CATEGORIES`** (and belongs to a **`CATEGORY_
 | **`cardColor`** | CSS gradient for card top. | Main screen award cards (optional override) |
 | **`bannerImage`** | Legacy gif name; not used for current main/category headers. | — |
 
-**Helpers (same file):** `getCategoryById(categoryId)`, `getCategoriesByGroup(groupId)`, `getAllCategories()`, `getCategoryGroupById(groupId)`.
+**Helpers (same file):** `getCategoryById(categoryId)` / `getAllCategories()` (the 6 categories); `getAwardById(awardId)`, `getAwardsByCategory(categoryId)`, `getAllAwards()` (the 24 awards).
 
 ---
 
@@ -31,23 +31,23 @@ Each award is one entry in **`AWARD_CATEGORIES`** (and belongs to a **`CATEGORY_
 
 ### Server – `src/server/index.ts`
 
-- **Submit:** `getCategoryById(category)` to validate `category` (id). Nominations stored with `category` = id.
-- **List/export/delete/stats:** Filter and aggregate by category **id**; use `getCategoryById` to get group/name when building CSV or stats.
-- **CSV export:** Writes **`Category`** = category **id** and **`Category Group`** = `categoryInfo.categoryGroup`. No human-readable award name column.
+- **Submit:** `getAwardById(category)` to validate `category` (award id). Nominations stored with `category` = award id.
+- **List/export/delete/stats:** Filter and aggregate by award **id** and by category **id** (the 6); use `getAwardById` / award `.category` when building CSV or stats.
+- **CSV export:** Writes **`Award`** = award **id** and **`Category`** = category id (the 6). No human-readable award name column.
 
 ### Client – `src/client/App.tsx`
 
-- **Main screen:** Renders `categoryGroups` and per-group `categories` from event config. Each award uses `cat.id`, `cat.name`, `cat.emoji`, `cat.iconPath`, `cat.cardColor`.
-- **Category group headers:** `getCategoryHeaderImage(group.id)` returns a path from a **hardcoded map** (group id → image path). Map is in `App.tsx` only; not in event-config.
-- **Submit form:** `selectedCategory` = one `AwardCategory`. Uses `selectedCategory.name`, `selectedCategory.description`, `selectedCategory.headerImage`, `selectedCategory.headerTextAlign`, `selectedCategory.emoji`, `selectedCategory.iconPath`.
-- **Nominee list / list view:** Award name shown from `categories.find(c => c.id === nom.category)` → `.name`; icon from same object (`iconPath` / `emoji`).
-- **Related awards:** Same category group; uses `award.id`, `award.name`, `award.iconPath`, `award.emoji`.
+- **Main screen:** Renders `categories` (the 6) and per-category `awards` from event config. Each award uses `award.id`, `award.name`, `award.emoji`, `award.iconPath`, `award.cardColor`.
+- **Category headers:** `getCategoryHeaderImage(categoryId)` returns a path from a **hardcoded map** (category id → image path). Map is in `App.tsx` only; not in event-config.
+- **Submit form:** `selectedAward` = one `Award`. Uses `selectedAward.name`, `selectedAward.description`, `selectedAward.headerImage`, `selectedAward.headerTextAlign`, `selectedAward.emoji`, `selectedAward.iconPath`.
+- **Nominee list / list view:** Award name shown from `awards.find(a => a.id === nom.category)` → `.name`; icon from same object (`iconPath` / `emoji`).
+- **Related awards:** Same category; uses `award.id`, `award.name`, `award.iconPath`, `award.emoji`.
 
-### Client – category group header image map
+### Client – category header image map
 
-**Location:** `App.tsx`, function `getCategoryHeaderImage(groupId)`.
+**Location:** `App.tsx`, function `getCategoryHeaderImage(categoryId)`.
 
-Maps **group id** → image path under `/images/category-headers/`:
+Maps **category id** → image path under `/images/category-headers/`:
 
 - `gaming-hobbies` → `header-games.png`
 - `funny-cute` → `header-funnycute.png`
@@ -113,7 +113,7 @@ When you change **what the award is for** (or its name in a way that changes the
 
 If you **add a new award** (new id in event-config), add a new key/value in `THING_TYPE_BY_CATEGORY`. If you **remove an award**, remove its key (and handle existing data/CSV as needed).
 
-**Flow:** CSV row → `category` = row["Category"] (id) → `getThingConstraint(category)` → `getSystemPrompt(categoryId)` → LLM system prompt. The user content passed to the LLM includes "Award category: &lt;id&gt; (&lt;categoryGroup&gt;)" and nomination title/reason/URL.
+**Flow:** CSV row → `awardId` = row["Award"], `categoryId` = row["Category"] → `getThingConstraint(awardId)` → `getSystemPrompt(awardId)` → LLM system prompt. The user content passed to the LLM includes "Award: &lt;awardId&gt; (category: &lt;categoryId&gt;)" and nomination title/reason/URL.
 
 ---
 

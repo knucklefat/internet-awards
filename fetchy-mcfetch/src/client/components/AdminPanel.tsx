@@ -14,7 +14,7 @@ type NominatorRow = { username: string; count: number; shadowBanned: boolean };
 export const AdminPanel = ({ onClose }: Props) => {
   const [stats, setStats] = useState<EventStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [eventConfig, setEventConfig] = useState<{ categories: any[]; categoryGroups: any[] } | null>(null);
+  const [eventConfig, setEventConfig] = useState<{ categories: any[]; awards: any[] } | null>(null);
   const [nominations, setNominations] = useState<any[]>([]);
   const [nominators, setNominators] = useState<NominatorRow[]>([]);
   const [activeView, setActiveView] = useState<AdminView>('nominations');
@@ -46,16 +46,16 @@ export const AdminPanel = ({ onClose }: Props) => {
   }, [activeView, sortNominators]);
 
   useEffect(() => {
-    if (activeView === 'categories' && eventConfig?.categoryGroups?.length) {
+    if (activeView === 'categories' && eventConfig?.categories?.length) {
       setSelectedCategoryId((prev) => (prev !== null && prev !== '' ? prev : null));
     }
-  }, [activeView, eventConfig?.categoryGroups]);
+  }, [activeView, eventConfig?.categories]);
 
   useEffect(() => {
-    if (activeView === 'awards' && eventConfig?.categories?.length) {
-      setSelectedAwardId((prev) => prev || (eventConfig.categories[0]?.id ?? null));
+    if (activeView === 'awards' && eventConfig?.awards?.length) {
+      setSelectedAwardId((prev) => prev || (eventConfig.awards[0]?.id ?? null));
     }
-  }, [activeView, eventConfig?.categories]);
+  }, [activeView, eventConfig?.awards]);
 
   const fetchStats = async () => {
     try {
@@ -214,9 +214,9 @@ export const AdminPanel = ({ onClose }: Props) => {
     );
   };
 
-  const awardsInCategoryGroup = (groupId: string) => {
-    if (!eventConfig?.categories) return [];
-    return eventConfig.categories.filter((a: any) => a.categoryGroup === groupId);
+  const awardsInCategory = (categoryId: string) => {
+    if (!eventConfig?.awards) return [];
+    return eventConfig.awards.filter((a: any) => a.category === categoryId);
   };
 
   const getSecondLine = (nom: any) => {
@@ -236,26 +236,26 @@ export const AdminPanel = ({ onClose }: Props) => {
     return list;
   }, [nominations, sortNominations]);
 
-  const categoryGroupsWithCounts = useMemo(() => {
-    if (!eventConfig?.categoryGroups || !stats?.nominationsByCategoryGroup) return [];
-    return eventConfig.categoryGroups.map((g: any) => ({
-      ...g,
-      count: stats.nominationsByCategoryGroup[g.id] ?? 0,
-    }));
-  }, [eventConfig?.categoryGroups, stats?.nominationsByCategoryGroup]);
-
-  const awardsWithCounts = useMemo(() => {
+  const categoriesWithCounts = useMemo(() => {
     if (!eventConfig?.categories || !stats?.nominationsByCategory) return [];
-    return eventConfig.categories.map((a: any) => ({
-      ...a,
-      count: stats.nominationsByCategory[a.id] ?? 0,
+    return eventConfig.categories.map((c: any) => ({
+      ...c,
+      count: stats.nominationsByCategory[c.id] ?? 0,
     }));
   }, [eventConfig?.categories, stats?.nominationsByCategory]);
 
+  const awardsWithCounts = useMemo(() => {
+    if (!eventConfig?.awards || !stats?.nominationsByAward) return [];
+    return eventConfig.awards.map((a: any) => ({
+      ...a,
+      count: stats.nominationsByAward[a.id] ?? 0,
+    }));
+  }, [eventConfig?.awards, stats?.nominationsByAward]);
+
   const awardsInSelectedCategory = useMemo(() => {
-    if (!selectedCategoryId || !eventConfig?.categories) return [];
-    return eventConfig.categories.filter((a: any) => a.categoryGroup === selectedCategoryId);
-  }, [selectedCategoryId, eventConfig?.categories]);
+    if (!selectedCategoryId || !eventConfig?.awards) return [];
+    return eventConfig.awards.filter((a: any) => a.category === selectedCategoryId);
+  }, [selectedCategoryId, eventConfig?.awards]);
 
   if (loading || !stats) {
     return (
@@ -271,8 +271,8 @@ export const AdminPanel = ({ onClose }: Props) => {
     );
   }
 
-  const categoryCount = eventConfig?.categoryGroups?.length ?? 0;
-  const awardCount = eventConfig?.categories?.length ?? 0;
+  const categoryCount = eventConfig?.categories?.length ?? 0;
+  const awardCount = eventConfig?.awards?.length ?? 0;
 
   return (
     <div className="admin-panel-overlay" onClick={onClose}>
@@ -405,34 +405,34 @@ export const AdminPanel = ({ onClose }: Props) => {
                     onChange={(e) => setSelectedCategoryId(e.target.value === '' ? '' : e.target.value || null)}
                   >
                     <option value="">ALL</option>
-                    {categoryGroupsWithCounts.map((g: any, i: number) => (
-                      <option key={g.id} value={g.id}>{i + 1}. {g.name} ({g.count})</option>
+                    {categoriesWithCounts.map((c: any, i: number) => (
+                      <option key={c.id} value={c.id}>{i + 1}. {c.name} ({c.count})</option>
                     ))}
                   </select>
                 </div>
               </div>
               {(selectedCategoryId === '' || selectedCategoryId === null) ? (
                 <div className="admin-categories-all-list">
-                  {categoryGroupsWithCounts.map((g: any) => {
-                    const isExpanded = expandedCategoryIds.includes(g.id);
-                    const awards = awardsInCategoryGroup(g.id);
+                  {categoriesWithCounts.map((c: any) => {
+                    const isExpanded = expandedCategoryIds.includes(c.id);
+                    const categoryAwards = awardsInCategory(c.id);
                     return (
-                      <div key={g.id} className="admin-category-group-row">
+                      <div key={c.id} className="admin-category-row">
                         <button
                           type="button"
-                          className="admin-category-group-header"
-                          onClick={() => toggleCategoryExpanded(g.id)}
+                          className="admin-category-header"
+                          onClick={() => toggleCategoryExpanded(c.id)}
                           aria-expanded={isExpanded}
                         >
-                          <span className="admin-category-group-name">{g.name}</span>
-                          <span className="admin-category-group-count">({g.count})</span>
+                          <span className="admin-category-name">{c.name}</span>
+                          <span className="admin-category-count">({c.count})</span>
                           <span className={`admin-expand-icon ${isExpanded ? 'expanded' : ''}`} aria-hidden>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                           </span>
                         </button>
                         {isExpanded && (
-                          <div className="admin-category-group-awards">
-                            {awards.map((award: any) => (
+                          <div className="admin-category-awards">
+                            {categoryAwards.map((award: any) => (
                               <div key={award.id} className="admin-award-header">
                                 <span className="admin-award-icon">
                                   {award.iconPath ? <img src={award.iconPath} alt="" /> : <span>{award.emoji}</span>}
@@ -498,7 +498,7 @@ export const AdminPanel = ({ onClose }: Props) => {
                 </div>
               </div>
               {selectedAwardId && (() => {
-                const award = eventConfig?.categories?.find((c: any) => c.id === selectedAwardId);
+                const award = eventConfig?.awards?.find((a: any) => a.id === selectedAwardId);
                 const awardNoms = sortedNominations.filter((n: any) => n.category === selectedAwardId);
                 return (
                   <div className="admin-nominee-list">

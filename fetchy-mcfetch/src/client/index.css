@@ -232,12 +232,13 @@ body {
 
 .main-subtitle {
   text-align: center;
-  font-weight: 600;
-  color: #dbdbdb;
-  margin-bottom: 30px;
-  font-size: 1.2rem;
-  line-height: 1.1;
+  font-weight: 700;
+  color: #f5f3f3;
+  margin-bottom: 6px;
+  font-size: 1rem;  
   padding: 16px 0 6px 0;
+
+
 }
 
 /* Line break only on mobile; hidden on wider screens so subtitle stays one line */
@@ -247,30 +248,30 @@ body {
   }
 }
 
-.award-group-section {
-  margin-bottom: 0; /* spacing between sections comes from + .award-group-section below */
+.category-section {
+  margin-bottom: 0; /* spacing between sections comes from + .category-section below */
   padding-bottom: 8px; /* extra space between award rows on mobile */
 }
 
-.award-group-section:last-child {
+.category-section:last-child {
   margin-bottom: 30px; /* space before footer */
 }
 
 /* 1px divider between categories: 12px + 1px + 12px = 25px between award row bottom and next header top */
-.award-group-section + .award-group-section {
+.category-section + .category-section {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #232434;
 }
 
-.award-group-header {
+.category-header {
   margin-bottom: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.award-group-header-image {
+.category-header-image {
   width: auto;
   max-width: 100%;
   height: auto;
@@ -282,7 +283,7 @@ body {
   animation: fadeIn 0.4s ease-in;
 }
 
-.award-group-title {
+.category-title {
   font-size: 1.4rem;
   font-weight: 800;
   margin-bottom: 8px;
@@ -297,9 +298,10 @@ body {
   font-size: 1.5rem;
 }
 
-.award-group-tagline {
+.category-tagline {
   text-align: center;
   font-size: 1rem;
+  font-weight: 500;
   color: #ffffff;
   margin: 8px 0 0 0;
   letter-spacing: 0px; 
@@ -313,17 +315,17 @@ body {
   box-sizing: border-box;
   border-top: 3px double #6b7280;
   border-bottom: 3px double #6b7280;
-  padding: 14px 20px;
-  margin-top: 24px;
-  margin-bottom: 0;
-}
+  padding: 10px 16px;
+  margin-top: 16px;
+  margin-bottom: 12px;
+ }
 
-.award-count-divider .award-group-break-title {
+.award-count-divider .category-break-title {
   margin: 0;
   padding: 0;
 }
 
-.award-group-break-title {
+.category-break-title {
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
@@ -498,7 +500,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding-top: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 6px;
   gap: 16px;
 }
 
@@ -537,7 +539,7 @@ body {
   color: #fff;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
   font-size: 0.8rem;
 }
 
@@ -1594,7 +1596,7 @@ body {
 /* ===== RESPONSIVE DESIGN ===== */
 /* Mobile: 2 cols (default above). Tablet: 3 cols at 768px+. Fullscreen: 4 cols at 1280px+ */
 @media (min-width: 768px) {
-  .award-group-section {
+  .category-section {
     padding-bottom: 0;
   }
 
@@ -2208,14 +2210,14 @@ body {
   gap: 4px;
 }
 
-.admin-category-group-row {
+.admin-category-row {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
 
-.admin-category-group-header {
+.admin-category-header {
   width: 100%;
   display: flex;
   align-items: center;
@@ -2230,11 +2232,11 @@ body {
   text-align: left;
 }
 
-.admin-category-group-header:hover {
+.admin-category-header:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.admin-category-group-name {
+.admin-category-name {
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -2242,7 +2244,7 @@ body {
   text-overflow: ellipsis;
 }
 
-.admin-category-group-count {
+.admin-category-count {
   color: #999;
   font-weight: 500;
   flex-shrink: 0;
@@ -2269,14 +2271,14 @@ body {
   color: #00E2B7;
 }
 
-.admin-category-group-awards {
+.admin-category-awards {
   padding: 0 14px 12px 52px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.admin-category-group-awards .admin-award-header {
+.admin-category-awards .admin-award-header {
   margin-bottom: 0;
   padding: 6px 0;
 }
@@ -2857,11 +2859,11 @@ body {
 }
 
 /* ===== CATEGORY GROUP SECTIONS ===== */
-.award-group-section:last-child {
+.category-section:last-child {
   margin-bottom: 48px; /* space before footer on larger screens */
 }
 
-.award-group-title {
+.category-title {
   font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: 1px;
@@ -2964,7 +2966,7 @@ body {
 }
 
 @media (max-width: 768px) {
-  .award-group-title {
+  .category-title {
     font-size: 1rem;
   }
   

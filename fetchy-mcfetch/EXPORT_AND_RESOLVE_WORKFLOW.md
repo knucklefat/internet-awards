@@ -42,7 +42,7 @@ curl -o csv-downloads/export-detour.csv "http://localhost:3000/api/export-csv?ca
 
 Headers:
 
-`Category`, `Category Group`, `Post Title`, `Author`, `Subreddit`, `Karma`, `URL`, `Nominated By`, `Reason`, `Thing Slug`, `Vote Count`, `Timestamp`
+`Award`, `Category`, `Post Title`, `Author`, `Subreddit`, `Karma`, `URL`, `Nominated By`, `Reason`, `Thing Slug`, `Vote Count`, `Timestamp`
 
 Each row is one nomination (or one “bucket” with vote count if multiple users nominated the same thing).
 

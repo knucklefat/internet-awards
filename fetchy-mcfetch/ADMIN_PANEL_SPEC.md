@@ -16,7 +16,7 @@ The Admin Panel is a modal available only to subreddit moderators. It has **four
 
 - **Layout:** Single row of four stat cards: **NOMINATIONS** | **CATEGORIES** | **AWARDS** | **NOMINATORS**.
 - **Behavior:** Tapping a card switches the panel into that view and highlights that card (e.g. teal border). The stat row stays fixed at the top while the body scrolls.
-- **Counts:** Each card shows the current count (e.g. 42, 6, 25, 4). Category count = number of category groups; Award count = number of awards.
+- **Counts:** Each card shows the current count (e.g. 42, 6, 25, 4). Category count = number of categories (6); Award count = number of awards (24).
 - **Download (NOMINATIONS only):** A **download icon** on the right side of the NOMINATIONS stat row runs the same logic as the current “Export All Nominations to CSV” (copy to clipboard in WebView). No separate “Export Data” or “Danger Zone” section in the UI.
 
 ---
@@ -40,14 +40,14 @@ The Admin Panel is a modal available only to subreddit moderators. It has **four
 ### 3.2 CATEGORIES View
 
 - **Purpose:** Browse by category group; under each category, show its awards and their nominees.
-- **Dropdown:** Lists **category groups** (e.g. “1. GAMES & HOBBIES”, “2. FUNNY & CUTE”, …). **Count in parentheses** in the dropdown label (e.g. “1. GAMES & HOBBIES (12)”) — number of nominations in that category. Selecting an option **jumps** the user to that category’s content (no separate “Nominations by category group” breakdown section).
+- **Dropdown:** Lists **categories** (e.g. “1. GAMES & HOBBIES”, “2. FUNNY & CUTE”, …). **Count in parentheses** in the dropdown label (e.g. “1. GAMES & HOBBIES (12)”) — number of nominations in that category. Selecting an option **jumps** the user to that category’s content (no separate “Nominations by category” breakdown section).
 - **Auto-select:** When entering CATEGORIES view, **auto-select the first category** in the dropdown.
 - **Content below dropdown:**
   - For the selected category, list **awards** in that category.
   - Each award is a **row/header** with: award icon, award name, and a **“SEE AWARD”** button (teal text).
   - **SEE AWARD:** Behaves like switching to AWARDS view and selecting that award: same dropdown selection, sort, and nominee list. The UI can switch to AWARDS view and highlight the AWARDS stat card when “SEE AWARD” is used.
   - Under each award header, list **nominee cards** for that award only (same card layout as elsewhere: thumbnail, name/description, link title, **HIDE** button).
-- **Remove:** Do not show the current “Nominations by category group” section; the count-in-dropdown replaces it.
+- **Remove:** Do not show the current “Nominations by category” section; the count-in-dropdown replaces it.
 
 ---
 
@@ -79,7 +79,7 @@ The Admin Panel is a modal available only to subreddit moderators. It has **four
 
 ## 4. Removals from Current Admin UI
 
-- **“Nominations by category group”** section — removed; category-level counts appear in the CATEGORIES dropdown only.
+- **“Nominations by category”** section — removed; category-level counts appear in the CATEGORIES dropdown only.
 - **“Top nominated posts”** section — removed; “most seconded” is available as a sort in NOMINATIONS and AWARDS views.
 - **“Export Data”** section (big “Export All Nominations to CSV” button) — removed; replaced by a **download icon** on the NOMINATIONS stat row that performs the same CSV export (e.g. copy to clipboard).
 - **“Danger Zone” / “Delete all nominations”** — removed from the UI. Delete-all is only performed when the product owner explicitly instructs the developer to run it (e.g. “delete all” as a one-off command). No in-app button for this.
@@ -96,7 +96,7 @@ The Admin Panel is a modal available only to subreddit moderators. It has **four
 - `POST /api/admin/unhide-nomination` — body `{ memberKey }`; mod-only; remove from hidden set.
 - `GET /api/export-csv` — CSV export (used by the new download icon).
 - `GET /api/stats/event` — event stats (totalNominations, totalNominators, etc.).
-- `GET /api/event/config` — category groups and awards (for dropdowns and labels).
+- `GET /api/event/config` — categories and awards (for dropdowns and labels).
 
 ### 5.2 New or extended
 
@@ -140,7 +140,7 @@ The Admin Panel is a modal available only to subreddit moderators. It has **four
 ## 9. Implementation Order (suggested)
 
 1. **Sticky stat row** + view switching (NOMINATIONS, CATEGORIES, AWARDS, NOMINATORS) without changing existing content layout.
-2. **NOMINATIONS view:** Add sort (MOST SECONDED / NEWEST), download icon on stat row; remove old Export/Danger Zone sections; remove “Nominations by category group” and “Top nominated posts.”
+2. **NOMINATIONS view:** Add sort (MOST SECONDED / NEWEST), download icon on stat row; remove old Export/Danger Zone sections; remove “Nominations by category” and “Top nominated posts.”
 3. **CATEGORIES view:** Dropdown (categories with counts), auto-select first, award headers with SEE AWARD, nominee list per award with HIDE.
 4. **AWARDS view:** Dropdown (awards with counts), auto-select first, sort, nominee list with HIDE/UNHIDE; keep showing hidden nominees with UNHIDE.
 5. **NOMINATORS view:** New endpoint for nominators list; sort ACTIVE/SHADOW BANNED; SHADOW BAN/UNBAN buttons; server-side shadow-ban store and checks on submit/second.

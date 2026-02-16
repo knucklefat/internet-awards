@@ -41,7 +41,7 @@ The Internet Awards app allows Reddit users to:
 ### **All 24 Award Categories**
 
 **🎮 Gaming & Hobbies:**
-1. S-Tier Game – Greatest, most enjoyable overall gaming experience *(Game Title)*
+1. S-Tier Game – Best overall gaming experience *(Game Title)*
 2. Holy Grail – The most desirable collectible released in the past year *(Title of Something that people collect)*
 3. Artistic Masterpiece – Best original artistic creation *(Link or image of a Piece of art)*
 4. Most Quotable – Work of fiction most worth quoting *(Literary Title or Author)*

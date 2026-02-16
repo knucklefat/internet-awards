@@ -39,8 +39,8 @@ All commands below are run from the **`fetchy-mcfetch/`** directory.
 - **Source:** `src/shared/config/event-config.ts` (and shared types in `src/shared/types/event.ts`).
 - **Exposed via:** `GET /api/event/config` (used by the client).
 - **You define:**
-  - **Category groups** – e.g. “Gaming & Hobbies”, “Knowledge” (id, name, tagline, emoji, accentColor, header image path).
-  - **Categories (awards)** – id, name, description, emoji, `categoryGroup`, optional `iconPath`, `headerImage`, `cardColor`, etc.
+  - **Categories** (the 6) – e.g. “Gaming & Hobbies”, “Knowledge” (id, name, tagline, emoji, accentColor, header image path).
+  - **Awards** (the 24) – id, name, description, emoji, `category` (id of one of the 6), optional `iconPath`, `headerImage`, `cardColor`, etc.
 - **Assets:** Header images and icons are referenced by path (e.g. under `src/client/public/images/`); main banner and splash assets in `assets/` or `src/client/public/` as needed.
 
 ### Splash and branding
@@ -140,7 +140,7 @@ As a moderator: Mod Tools → Create Post → choose the menu item you configure
 
 | Method + path | Purpose |
 |---------------|---------|
-| `GET /api/event/config` | Event and category/category-group config (for client). |
+| `GET /api/event/config` | Event, categories (6), and awards (24) config (for client). |
 | `GET /api/nominations` | List nominations; optional `?category=<id>`. |
 | `POST /api/submit-nomination` | Create nomination or second (body: category, title, postUrl, reason, etc.). |
 | `GET /api/user/nomination-count` | Current user’s used/limit (for rate limit UI). |
@@ -159,7 +159,7 @@ Internal: `POST /internal/menu/post-create` (mod menu → create post), `POST /i
 
 ## Customization checklist
 
-1. **Event and categories** – Edit `src/shared/config/event-config.ts`: category groups and categories (names, ids, groups, images, colors).
+1. **Event, categories, and awards** – Edit `src/shared/config/event-config.ts`: categories (the 6), awards (the 24), names, ids, images, colors.
 2. **Splash and copy** – Edit `src/client/splash.html` (and assets) for logo, headline, button text.
 3. **Post creation copy** – Edit `src/server/core/post.ts` for the post created by the mod menu (splash/heading/button).
 4. **Menu label** – Edit `devvit.json` → `menu.items[].label` and `description`.

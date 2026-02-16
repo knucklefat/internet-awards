@@ -1,11 +1,14 @@
 /**
  * Event Configuration Types
  * Defines the structure for The Internet Awards multi-day event
+ * Naming: category = one of the 6 groups (e.g. Gaming & Hobbies); award = one of the 24 (e.g. S-Tier Game).
  */
 
-export interface AwardCategory {
+export type AwardCategory = Award;
+
+export interface Award {
   id: string;
-  categoryGroup: string; // e.g., "Games & Hobbies"
+  category: string; // id of the category (6 groups), e.g. "gaming-hobbies"
   name: string;
   emoji: string;
   description: string;
@@ -18,7 +21,8 @@ export interface AwardCategory {
   cardColor?: string; // Background color for the card's top section
 }
 
-export interface CategoryGroup {
+/** One of the 6 top-level categories (e.g. Gaming & Hobbies). Formerly "category group" / "award group". */
+export interface Category {
   id: string;
   name: string;
   tagline: string; // Short catchy phrase
@@ -32,9 +36,12 @@ export interface EventConfig {
   description: string;
   startDate: string;
   endDate: string;
-  categories: AwardCategory[];
-  categoryGroups: CategoryGroup[];
+  categories: Category[]; // The 6 groups
+  awards: Award[]; // The 24 awards
 }
+
+/** @deprecated Use Category */
+export type CategoryGroup = Category;
 
 export interface Nomination {
   /** Reddit post ID when nomination includes a link; empty for link-free submissions */
@@ -71,8 +78,8 @@ export interface EventStats {
   totalNominations: number;
   totalNominators: number;
   totalCategories: number;
-  nominationsByCategory: Record<string, number>;
-  nominationsByCategoryGroup: Record<string, number>;
+  nominationsByCategory: Record<string, number>; // category id (6) -> count
+  nominationsByAward: Record<string, number>; // award id (24) -> count
   topPosts: Array<{
     postId: string;
     title: string;

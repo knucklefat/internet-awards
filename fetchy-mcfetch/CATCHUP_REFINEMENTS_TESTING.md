@@ -8,7 +8,7 @@
 
 - **Name:** fetchy-mcfetch (The Internet Awards – Nominations).
 - **Purpose:** Reddit Devvit app for **Phase 1 only**: users nominate posts (or link-free entries) to award categories; mods manage the event, export CSV, and create nomination posts from the mod menu. Voting is a separate app (ballot-box).
-- **Status:** Production-ready (v0.0.88 per README). Dev sub: **r/internetawards_dev**. Single event, 24 awards in 6 category groups.
+- **Status:** Production-ready (v0.0.88 per README). Dev sub: **r/internetawards_dev**. Single event, 24 awards in 6 categories.
 
 ---
 
@@ -75,7 +75,7 @@ fetchy-mcfetch/
    - CSV export: includes category, title, author, URL, reason, thingSlug, voteCount, etc. Optional script `scripts/add-resolved-thing.js` for "Resolved Thing" column (optional LLM).
 
 4. **UX**
-   - Splash → main app; category groups and award list from `event-config.ts`; banners/GIFs from `public/images/banners` and category-headers.
+   - Splash → main app; categories and awards list from `event-config.ts`; banners/GIFs from `public/images/banners` and category-headers.
 
 ---
 

@@ -3,8 +3,9 @@ import { cache, redis, reddit, createServer, context, getServerPort } from '@dev
 import { createPost } from './core/post';
 import {
   INTERNET_AWARDS_EVENT,
-  getCategoryById,
+  getAwardById,
   getAllCategories,
+  getAllAwards,
 } from '../shared/config/event-config';
 import type { Nomination } from '../shared/types/event';
 
@@ -368,7 +369,7 @@ router.get('/api/event/config', async (_req, res): Promise<void> => {
         startDate: INTERNET_AWARDS_EVENT.startDate,
         endDate: INTERNET_AWARDS_EVENT.endDate,
         categories: INTERNET_AWARDS_EVENT.categories,
-        categoryGroups: INTERNET_AWARDS_EVENT.categoryGroups,
+        awards: INTERNET_AWARDS_EVENT.awards,
       },
     });
   } catch (error) {
@@ -468,8 +469,8 @@ router.post('/api/submit-nomination', async (req, res): Promise<void> => {
       return;
     }
 
-    const categoryInfo = getCategoryById(category);
-    if (!categoryInfo) {
+    const awardInfo = getAwardById(category);
+    if (!awardInfo) {
       res.status(400).json({
         error: 'Invalid category',
         success: false,
@@ -995,8 +996,8 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
     const allMemberKeys = await redis.zRange('nominations:all', 0, -1, { by: 'rank' });
 
     const nominators = new Set<string>();
+    const nominationsByAward: Record<string, number> = {};
     const nominationsByCategory: Record<string, number> = {};
-    const nominationsByCategoryGroup: Record<string, number> = {};
     const postCounts: Record<string, { title: string; count: number }> = {};
 
     for (const memberKey of allMemberKeys) {
@@ -1010,12 +1011,12 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
         (data.title || data.postId)
       ) {
         nominators.add(data.nominatedBy);
-        const category = data.category;
-        nominationsByCategory[category] = (nominationsByCategory[category] || 0) + 1;
-        const categoryInfo = getCategoryById(category);
-        if (categoryInfo) {
-          const group = categoryInfo.categoryGroup;
-          nominationsByCategoryGroup[group] = (nominationsByCategoryGroup[group] || 0) + 1;
+        const awardId = data.category;
+        nominationsByAward[awardId] = (nominationsByAward[awardId] || 0) + 1;
+        const awardInfo = getAwardById(awardId);
+        if (awardInfo) {
+          const catId = awardInfo.category;
+          nominationsByCategory[catId] = (nominationsByCategory[catId] || 0) + 1;
         }
         const id = (data.postId && data.postId.length > 0) ? data.postId : memberKey.member;
         if (!postCounts[id]) {
@@ -1042,7 +1043,7 @@ router.get('/api/stats/event', async (_req, res): Promise<void> => {
         totalNominators: nominators.size,
         totalCategories: getAllCategories().length,
         nominationsByCategory,
-        nominationsByCategoryGroup,
+        nominationsByAward,
         topPosts,
       },
     });
@@ -1070,10 +1071,10 @@ router.get('/api/export-csv', async (req, res): Promise<void> => {
       memberKeys = memberKeys.filter((key) => key.member.startsWith(`${category}:`));
     }
 
-    // Build CSV (Layer 2: Thing Slug, Vote Count)
+    // Build CSV (Layer 2: Thing Slug, Vote Count). Award = award id; Category = category id (the 6).
     const headers = [
+      'Award',
       'Category',
-      'Category Group',
       'Post Title',
       'Author',
       'Subreddit',
@@ -1092,10 +1093,10 @@ router.get('/api/export-csv', async (req, res): Promise<void> => {
       const data = await redis.hGetAll(nominationKey);
 
       if (Object.keys(data).length > 0) {
-        const categoryInfo = data.category ? getCategoryById(data.category) : undefined;
+        const awardInfo = data.category ? getAwardById(data.category) : undefined;
         const row = [
           data.category || '',
-          categoryInfo?.categoryGroup || '',
+          awardInfo?.category || '',
           `"${(data.title || '').replace(/"/g, '""')}"`,
           data.author || '',
           data.subreddit || '',

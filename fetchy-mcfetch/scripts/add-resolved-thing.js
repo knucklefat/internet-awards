@@ -89,9 +89,9 @@ For this award we want: ${constraint}
 Output only the label, one line, no quotes or explanation. Use title case for proper nouns.`;
 }
 
-function buildUserContent(category, categoryGroup, postTitle, reason, url) {
+function buildUserContent(awardId, categoryId, postTitle, reason, url) {
   const parts = [
-    `Award category: ${category}${categoryGroup ? ` (${categoryGroup})` : ''}.`,
+    `Award: ${awardId}${categoryId ? ` (category: ${categoryId})` : ''}.`,
     `Nomination: ${(postTitle || '').trim() || '(no title)'}`,
   ];
   if (reason && String(reason).trim()) parts.push(`Reason: ${String(reason).trim()}`);
@@ -102,10 +102,10 @@ function buildUserContent(category, categoryGroup, postTitle, reason, url) {
 /**
  * Layer 4 (OpenAI): resolve a short canonical "thing" label. Returns label or null.
  */
-async function resolveThingWithOpenAI(apiKey, category, categoryGroup, postTitle, reason, url) {
+async function resolveThingWithOpenAI(apiKey, awardId, categoryId, postTitle, reason, url) {
   if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) return null;
-  const systemPrompt = getSystemPrompt(category);
-  const userContent = buildUserContent(category, categoryGroup, postTitle, reason, url);
+  const systemPrompt = getSystemPrompt(awardId);
+  const userContent = buildUserContent(awardId, categoryId, postTitle, reason, url);
   const body = {
     model: 'gpt-4o-mini',
     messages: [
@@ -140,10 +140,10 @@ async function resolveThingWithOpenAI(apiKey, category, categoryGroup, postTitle
  * Layer 4 (Gemini): resolve a short canonical "thing" label via Google Gemini API.
  * Uses gemini-1.5-flash. Returns label or null.
  */
-async function resolveThingWithGemini(apiKey, category, categoryGroup, postTitle, reason, url) {
+async function resolveThingWithGemini(apiKey, awardId, categoryId, postTitle, reason, url) {
   if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) return null;
-  const systemPrompt = getSystemPrompt(category);
-  const userContent = buildUserContent(category, categoryGroup, postTitle, reason, url);
+  const systemPrompt = getSystemPrompt(awardId);
+  const userContent = buildUserContent(awardId, categoryId, postTitle, reason, url);
   const model = 'gemini-1.5-flash';
   const body = {
     contents: [{ parts: [{ text: userContent }] }],
@@ -242,8 +242,8 @@ async function run(inputPath, outputPath, useLLM, useGemini) {
   const reader = inputPath ? getFileReader(inputPath) : getStdinReader();
   const outStream = outputPath ? createWriteStream(outputPath, 'utf8') : process.stdout;
 
+  const COL_AWARD = 'Award';
   const COL_CATEGORY = 'Category';
-  const COL_CATEGORY_GROUP = 'Category Group';
   const COL_POST_TITLE = 'Post Title';
   const COL_REASON = 'Reason';
   const COL_URL = 'URL';
@@ -262,8 +262,8 @@ async function run(inputPath, outputPath, useLLM, useGemini) {
 
   let headerRow = null;
   let headerIndex = null;
+  let idxAward = -1;
   let idxCategory = -1;
-  let idxCategoryGroup = -1;
   let idxPostTitle = -1;
   let idxReason = -1;
   let idxUrl = -1;
@@ -287,8 +287,8 @@ async function run(inputPath, outputPath, useLLM, useGemini) {
       headerRow.forEach((h, i) => {
         headerIndex[h] = i;
       });
+      idxAward = headerIndex[COL_AWARD] ?? -1;
       idxCategory = headerIndex[COL_CATEGORY] ?? -1;
-      idxCategoryGroup = headerIndex[COL_CATEGORY_GROUP] ?? -1;
       idxPostTitle = headerIndex[COL_POST_TITLE] ?? -1;
       idxReason = headerIndex[COL_REASON] ?? -1;
       idxUrl = headerIndex[COL_URL] ?? -1;
@@ -307,13 +307,13 @@ async function run(inputPath, outputPath, useLLM, useGemini) {
     let resolvedThing = slugFallback;
 
     if (useLayer4) {
-      const category = idxCategory >= 0 ? row[idxCategory] ?? '' : '';
-      const categoryGroup = idxCategoryGroup >= 0 ? row[idxCategoryGroup] ?? '' : '';
+      const awardId = idxAward >= 0 ? row[idxAward] ?? '' : '';
+      const categoryId = idxCategory >= 0 ? row[idxCategory] ?? '' : '';
       const reason = idxReason >= 0 ? row[idxReason] ?? '' : '';
       const url = idxUrl >= 0 ? row[idxUrl] ?? '' : '';
       const label = useGemini && geminiKey
-        ? await resolveThingWithGemini(geminiKey, category, categoryGroup, postTitle, reason, url)
-        : await resolveThingWithOpenAI(openaiKey, category, categoryGroup, postTitle, reason, url);
+        ? await resolveThingWithGemini(geminiKey, awardId, categoryId, postTitle, reason, url)
+        : await resolveThingWithOpenAI(openaiKey, awardId, categoryId, postTitle, reason, url);
       if (label) resolvedThing = label;
       await delay(LLM_DELAY_MS);
     }
